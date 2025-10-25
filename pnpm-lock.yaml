@@ -374,6 +374,9 @@ importers:
       remirror:
         specifier: ^3.0.1
         version: 3.0.3(@remirror/extension-react-tables@3.0.3(@remirror/pm@3.0.1)(@types/node@17.0.21)(@types/react-dom@18.3.6(@types/react@18.3.20))(@types/react@18.3.20)(jsdom@26.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@remirror/pm@3.0.1)(@types/node@17.0.21)(jsdom@26.1.0)(prettier@3.5.3)
+      resend:
+        specifier: ^4.0.0
+        version: 4.8.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       sharp:
         specifier: ^0.33.2
         version: 0.33.5
@@ -9094,6 +9097,10 @@ packages:
 
   reselect@4.1.8:
     resolution: {integrity: sha512-ab9EmR80F/zQTMNeneUr4cv+jSwPJgIlvEmVwLerwrWVbpLlBuls9XHzIeTFy4cegU2NHBp3va0LKOzU5qFEYQ==}
+
+  resend@4.8.0:
+    resolution: {integrity: sha512-R8eBOFQDO6dzRTDmaMEdpqrkmgSjPpVXt4nGfWsZdYOet0kqra0xgbvTES6HmCriZEXbmGk3e0DiGIaLFTFSHA==}
+    engines: {node: '>=18'}
 
   resize-observer-polyfill@1.5.1:
     resolution: {integrity: sha512-LwZrotdHOo12nQuZlHEmtuXdqGoOD0OhaxopaNFxWzInpEgaLWoVuAMbTzixuosCx2nEG58ngzW3vxdWoxIgdg==}
@@ -21952,6 +21959,13 @@ snapshots:
   requires-port@1.0.0: {}
 
   reselect@4.1.8: {}
+
+  resend@4.8.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@react-email/render': 1.1.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   resize-observer-polyfill@1.5.1: {}
 

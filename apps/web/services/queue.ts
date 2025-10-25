@@ -2,6 +2,7 @@ import { NotificationEntityAction } from "@courselit/common-models";
 import { jwtUtils } from "@courselit/utils";
 import { error } from "./logger";
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { responses } from "@/config/strings";
 import NotificationModel from "@models/Notification";
 import { ObjectId } from "mongodb";
@@ -20,8 +21,10 @@ const mailHost = process.env.EMAIL_HOST;
 const mailUser = process.env.EMAIL_USER;
 const mailPass = process.env.EMAIL_PASS;
 const mailPort = process.env.EMAIL_PORT ? +process.env.EMAIL_PORT : 587;
+const resendKey = process.env.RESEND_API_KEY;
 
 let transporter: any;
+const resendClient = resendKey ? new Resend(resendKey) : null;
 interface MailProps {
     to: string[];
     subject: string;
@@ -48,6 +51,43 @@ if (mailHost && mailUser && mailPass && mailPort) {
             console.log("Mail:", to, from, subject, html); // eslint-disable-line no-console
         },
     };
+}
+
+async function sendMailLocally({ to, from, subject, body }: MailProps) {
+    if (resendClient) {
+        try {
+            await resendClient.emails.send({
+                from,
+                to,
+                subject,
+                html: body,
+            });
+            return true;
+        } catch (err: any) {
+            error(`Error sending mail via Resend: ${err.message}`, {
+                stack: err.stack,
+            });
+        }
+    }
+
+    let atLeastOneSuccessfulSend = false;
+    for (const recipient of to) {
+        try {
+            await transporter.sendMail({
+                from,
+                to: recipient,
+                subject,
+                html: body,
+            });
+            atLeastOneSuccessfulSend = true;
+        } catch (err: any) {
+            error(`Error sending mail locally: ${err.message}`, {
+                stack: err.stack,
+            });
+        }
+    }
+
+    return atLeastOneSuccessfulSend;
 }
 
 export async function addMailJob({ to, from, subject, body }: MailProps) {
@@ -80,24 +120,9 @@ export async function addMailJob({ to, from, subject, body }: MailProps) {
             body,
         });
 
-        let atLeastOneSuccessfulSend = false;
-        for (const recipient of to) {
-            try {
-                await transporter.sendMail({
-                    from,
-                    to: recipient,
-                    subject,
-                    html: body,
-                });
-                atLeastOneSuccessfulSend = true;
-            } catch (err: any) {
-                error(`Error sending mail locally: ${err.message}`, {
-                    stack: err.stack,
-                });
-            }
-        }
+        const success = await sendMailLocally({ to, from, subject, body });
 
-        if (!atLeastOneSuccessfulSend) {
+        if (!success) {
             throw new Error(responses.email_delivery_failed_for_all_recipients);
         }
     }
