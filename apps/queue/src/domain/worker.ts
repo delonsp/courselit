@@ -1,5 +1,6 @@
 import { Worker } from "bullmq";
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import redis from "../redis";
 import { logger } from "../logger";
 
@@ -12,12 +13,33 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+const resendKey = process.env.RESEND_API_KEY;
+const resendClient = resendKey ? new Resend(resendKey) : null;
+
 const worker = new Worker(
     "mail",
     async (job) => {
         const { to, from, subject, body } = job.data;
 
         try {
+            if (resendClient) {
+                logger.info(
+                    { jobId: job.id, to, subject },
+                    "queue: sending mail via Resend",
+                );
+                await resendClient.emails.send({
+                    from,
+                    to,
+                    subject,
+                    html: body,
+                });
+                logger.info(
+                    { jobId: job.id, to, subject },
+                    "queue: mail sent via Resend",
+                );
+                return;
+            }
+
             logger.info(
                 { jobId: job.id, to, subject },
                 "queue: sending mail via SMTP transporter",
