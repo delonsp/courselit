@@ -1,6 +1,6 @@
 import { NotificationEntityAction } from "@courselit/common-models";
 import { jwtUtils } from "@courselit/utils";
-import { error } from "./logger";
+import { error, info } from "./logger";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { responses } from "@/config/strings";
@@ -62,6 +62,7 @@ async function sendMailLocally({ to, from, subject, body }: MailProps) {
                 subject,
                 html: body,
             });
+            info("Mail delivered via Resend", { to, subject });
             return true;
         } catch (err: any) {
             error(`Error sending mail via Resend: ${err.message}`, {
@@ -78,6 +79,10 @@ async function sendMailLocally({ to, from, subject, body }: MailProps) {
                 to: recipient,
                 subject,
                 html: body,
+            });
+            info("Mail delivered via local transporter", {
+                to: recipient,
+                subject,
             });
             atLeastOneSuccessfulSend = true;
         } catch (err: any) {
@@ -112,6 +117,12 @@ export async function addMailJob({ to, from, subject, body }: MailProps) {
         if (response.status !== 200) {
             throw new Error(jsonResponse.error);
         }
+
+        info("Mail job enqueued", {
+            queueServer,
+            to,
+            subject,
+        });
     } catch (err) {
         error(`Error adding mail job: ${err.message}`, {
             to,

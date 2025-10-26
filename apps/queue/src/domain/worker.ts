@@ -18,12 +18,20 @@ const worker = new Worker(
         const { to, from, subject, body } = job.data;
 
         try {
+            logger.info(
+                { jobId: job.id, to, subject },
+                "queue: sending mail via SMTP transporter",
+            );
             await transporter.sendMail({
                 from,
                 to,
                 subject,
                 html: body,
             });
+            logger.info(
+                { jobId: job.id, to, subject },
+                "queue: mail sent successfully via SMTP transporter",
+            );
         } catch (err: any) {
             logger.error(err);
         }
