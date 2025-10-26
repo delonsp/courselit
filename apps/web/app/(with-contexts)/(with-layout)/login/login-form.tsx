@@ -14,7 +14,7 @@ import {
     Text2,
     Link as PageLink,
 } from "@courselit/page-primitives";
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { Form, useToast } from "@courselit/components-library";
@@ -37,6 +37,7 @@ import { checkPermission } from "@courselit/utils";
 import { Profile } from "@courselit/common-models";
 import { getUserProfile } from "../../helpers";
 import { ADMIN_PERMISSIONS } from "@ui-config/constants";
+import { getDomainHeaderValue } from "@/lib/domain-header";
 
 export default function LoginForm({ redirectTo }: { redirectTo?: string }) {
     const { theme } = useContext(ThemeContext);
@@ -49,6 +50,10 @@ export default function LoginForm({ redirectTo }: { redirectTo?: string }) {
     const serverConfig = useContext(ServerConfigContext);
     const { executeRecaptcha } = useRecaptcha();
     const address = useContext(AddressContext);
+    const domainHeader = useMemo(
+        () => getDomainHeaderValue(address.backend),
+        [address.backend],
+    );
 
     const requestCode = async function (e: FormEvent) {
         e.preventDefault();
@@ -121,7 +126,9 @@ export default function LoginForm({ redirectTo }: { redirectTo?: string }) {
             const url = `/api/auth/code/generate?email=${encodeURIComponent(
                 email,
             )}`;
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: domainHeader ? { domain: domainHeader } : undefined,
+            });
             const resp = await response.json();
             if (response.ok) {
                 setShowCode(true);

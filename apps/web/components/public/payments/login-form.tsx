@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +20,7 @@ import {
 import { useToast } from "@courselit/components-library";
 import { TOAST_TITLE_ERROR } from "@ui-config/strings";
 import { signIn } from "next-auth/react";
+import { getDomainHeaderValue } from "@/lib/domain-header";
 import { getUserProfile } from "@/app/(with-contexts)/helpers";
 
 const loginFormSchema = z.object({
@@ -41,6 +42,10 @@ export function LoginForm({ onLoginComplete }: LoginFormProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const { theme } = useContext(ThemeContext);
+    const domainHeader = useMemo(
+        () => getDomainHeaderValue(address.backend),
+        [address.backend],
+    );
 
     useEffect(() => {
         if (profile && profile.email) {
@@ -80,7 +85,9 @@ export function LoginForm({ onLoginComplete }: LoginFormProps) {
         )}`;
         try {
             setLoading(true);
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: domainHeader ? { domain: domainHeader } : undefined,
+            });
             const resp = await response.json();
             if (!response.ok) {
                 toast({
