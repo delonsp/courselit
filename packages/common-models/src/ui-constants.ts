@@ -63,3 +63,9 @@ export const MAIL_RECIPIENTS_SPLIT_REGEX = /,\s*/;
 // Regex taken from: https://stackoverflow.com/a/8260383
 export const YOUTUBE_REGEX =
     /.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#\&\?]*).*/; // eslint-disable-line no-useless-escape
+
+// Bunny.net Stream embed URLs
+// Matches: https://iframe.mediadelivery.net/embed/<libraryId>/<videoId>
+// Also matches: https://player.mediadelivery.net/...
+export const BUNNY_EMBED_REGEX =
+    /^https?:\/\/(iframe|player)\.mediadelivery\.net\/.*/;
