@@ -235,7 +235,7 @@ export default function LessonPage() {
                     <div className="space-y-4">
                         <div className="flex items-center space-x-2">
                             <Input
-                                placeholder="e.g. YouTube video URL"
+                                placeholder="e.g. https://iframe.mediadelivery.net/embed/..."
                                 value={content.value}
                                 onChange={(e) =>
                                     // updateLesson({ content: { value: e.target.value } })
@@ -268,14 +268,15 @@ export default function LessonPage() {
                         {content.value && (
                             <div className="">
                                 {content.value.match(
-                                    UIConstants.YOUTUBE_REGEX,
+                                    UIConstants.BUNNY_EMBED_REGEX,
                                 ) && (
                                     <div className="aspect-video">
                                         <iframe
                                             className="w-full h-full rounded-lg"
-                                            src={`https://www.youtube.com/embed/${content.value.match(UIConstants.YOUTUBE_REGEX)?.[1] ?? ""}`}
-                                            title="YouTube video player"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            src={content.value}
+                                            title="Video player"
+                                            loading="lazy"
+                                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
                                             allowFullScreen
                                         />
                                     </div>
@@ -792,7 +793,7 @@ export default function LessonPage() {
                 break;
             case Constants.LessonType.EMBED:
                 if (!content.value.trim()) {
-                    newErrors.content = "Please enter a YouTube video ID.";
+                    newErrors.content = "Please enter a video embed URL.";
                 }
                 break;
             case Constants.LessonType.QUIZ:
