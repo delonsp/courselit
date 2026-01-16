@@ -143,20 +143,34 @@ export async function POST(req: NextRequest) {
         });
 
         if (membership) {
-            // Update existing membership if not already active
-            if (membership.status !== Constants.MembershipStatus.ACTIVE) {
-                membership.status = Constants.MembershipStatus.ACTIVE;
-                membership.role = Constants.MembershipRole.POST;
-                membership.paymentPlanId = planId;
-                membership.subscriptionId = wooSubscriptionId;
-                membership.subscriptionMethod = "woocommerce";
-                membership.rejectionReason = undefined;
-                await (membership as any).save();
+            // Update existing membership - always process to handle reactivation
+            const wasActive = membership.status === Constants.MembershipStatus.ACTIVE;
 
-                // Activate membership (adds included products, etc.)
+            // Update membership fields but DON'T set status to ACTIVE yet
+            // Let activateMembership() handle the status change so it processes included products
+            if (!wasActive) {
+                membership.status = Constants.MembershipStatus.PENDING; // Reset to pending for reactivation
+            }
+            membership.role = Constants.MembershipRole.POST;
+            membership.paymentPlanId = planId;
+            membership.subscriptionId = wooSubscriptionId;
+            membership.subscriptionMethod = "woocommerce";
+            membership.rejectionReason = undefined;
+            await (membership as any).save();
+
+            // Activate membership (adds included products, etc.)
+            // This will set status to ACTIVE and process includedProducts
+            if (!wasActive) {
                 await activateMembership(domain, membership, paymentPlan);
 
                 info(`WooCommerce integration: Reactivated membership`, {
+                    domain: domain.name,
+                    userId: user.userId,
+                    communityId,
+                    membershipId: membership.membershipId,
+                });
+            } else {
+                info(`WooCommerce integration: Membership already active`, {
                     domain: domain.name,
                     userId: user.userId,
                     communityId,

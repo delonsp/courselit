@@ -21,6 +21,7 @@ import {
 } from "./helpers";
 import mongoose from "mongoose";
 import MembershipModel from "@models/Membership";
+import UserModel from "@models/User";
 import { runPostMembershipTasks } from "../users/logic";
 import ActivityModel from "@models/Activity";
 const { MembershipEntityType: membershipEntityType } = Constants;
@@ -459,6 +460,18 @@ export async function deleteMembershipsActivatedViaPaymentPlan({
     userId: string;
     paymentPlanId: string;
 }) {
+    // First, find the course memberships to be deleted so we can remove from user.purchases
+    const membershipsToDelete = await MembershipModel.find({
+        domain,
+        userId,
+        paymentPlanId: paymentPlanId,
+        entityType: Constants.MembershipEntityType.COURSE,
+        isIncludedInPlan: true,
+    });
+
+    const courseIdsToRemove = membershipsToDelete.map((m: any) => m.entityId);
+
+    // Delete activity records
     await ActivityModel.deleteMany({
         domain,
         userId,
@@ -466,6 +479,8 @@ export async function deleteMembershipsActivatedViaPaymentPlan({
         "metadata.isIncludedInPlan": true,
         "metadata.paymentPlanId": paymentPlanId,
     });
+
+    // Delete membership records
     await MembershipModel.deleteMany({
         domain,
         userId,
@@ -473,6 +488,14 @@ export async function deleteMembershipsActivatedViaPaymentPlan({
         entityType: Constants.MembershipEntityType.COURSE,
         isIncludedInPlan: true,
     });
+
+    // Also remove from user.purchases to revoke access
+    if (courseIdsToRemove.length > 0) {
+        await UserModel.updateOne(
+            { domain, userId },
+            { $pull: { purchases: { courseId: { $in: courseIdsToRemove } } } }
+        );
+    }
 }
 
 export async function deleteProductsFromPaymentPlans({
