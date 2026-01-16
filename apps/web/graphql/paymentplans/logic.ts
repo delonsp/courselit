@@ -257,6 +257,9 @@ export async function updatePlan({
 
     checkEntityManagementPermission(paymentPlan.entityType, ctx);
 
+    // Store old includedProducts to detect changes
+    const oldIncludedProducts = paymentPlan.includedProducts || [];
+
     if (name !== undefined) paymentPlan.name = name;
     if (type !== undefined) paymentPlan.type = type;
     if (oneTimeAmount !== undefined) paymentPlan.oneTimeAmount = oneTimeAmount;
@@ -276,6 +279,26 @@ export async function updatePlan({
     await checkIncludedProducts(ctx.subdomain._id, paymentPlan);
 
     await paymentPlan.save();
+
+    // Sync active members when includedProducts changes
+    if (includedProducts !== undefined) {
+        const newIncludedProducts = includedProducts || [];
+        const addedCourses = newIncludedProducts.filter(
+            (courseId) => !oldIncludedProducts.includes(courseId)
+        );
+        const removedCourses = oldIncludedProducts.filter(
+            (courseId) => !newIncludedProducts.includes(courseId)
+        );
+
+        if (addedCourses.length > 0 || removedCourses.length > 0) {
+            await syncMembersWithPlanChanges({
+                domain: ctx.subdomain._id,
+                paymentPlan,
+                addedCourses,
+                removedCourses,
+            });
+        }
+    }
 
     return paymentPlan;
 }
@@ -509,4 +532,96 @@ export async function deleteProductsFromPaymentPlans({
         { domain, includedProducts: { $in: [courseId] } },
         { $pull: { includedProducts: courseId } },
     );
+}
+
+/**
+ * Sync active members when a plan's includedProducts changes.
+ * - For added courses: create memberships and add to user.purchases
+ * - For removed courses: delete memberships and remove from user.purchases
+ */
+export async function syncMembersWithPlanChanges({
+    domain,
+    paymentPlan,
+    addedCourses,
+    removedCourses,
+}: {
+    domain: mongoose.Types.ObjectId;
+    paymentPlan: PaymentPlan;
+    addedCourses: string[];
+    removedCourses: string[];
+}) {
+    // Find all ACTIVE community memberships for this plan
+    const activeMemberships = await MembershipModel.find({
+        domain,
+        paymentPlanId: paymentPlan.planId,
+        entityType: Constants.MembershipEntityType.COMMUNITY,
+        status: Constants.MembershipStatus.ACTIVE,
+    });
+
+    if (activeMemberships.length === 0) {
+        return;
+    }
+
+    // Get published courses for the added courses
+    const coursesToAdd = addedCourses.length > 0
+        ? await CourseModel.find({
+              domain,
+              courseId: { $in: addedCourses },
+              published: true,
+          })
+        : [];
+
+    // Process each active member
+    for (const membership of activeMemberships) {
+        const userId = (membership as any).userId;
+
+        // Add new courses
+        for (const course of coursesToAdd) {
+            // Check if membership already exists
+            const existingMembership = await MembershipModel.findOne({
+                domain,
+                userId,
+                entityId: course.courseId,
+                entityType: Constants.MembershipEntityType.COURSE,
+            });
+
+            if (!existingMembership) {
+                // Create course membership
+                const newMembership = await MembershipModel.create({
+                    domain,
+                    userId,
+                    entityId: course.courseId,
+                    entityType: Constants.MembershipEntityType.COURSE,
+                    paymentPlanId: paymentPlan.planId,
+                    status: Constants.MembershipStatus.ACTIVE,
+                    isIncludedInPlan: true,
+                });
+
+                await runPostMembershipTasks({
+                    domain,
+                    membership: newMembership,
+                    paymentPlan,
+                });
+            }
+        }
+
+        // Remove courses
+        if (removedCourses.length > 0) {
+            // Delete course memberships
+            await MembershipModel.deleteMany({
+                domain,
+                userId,
+                entityId: { $in: removedCourses },
+                entityType: Constants.MembershipEntityType.COURSE,
+                paymentPlanId: paymentPlan.planId,
+                isIncludedInPlan: true,
+            });
+
+            // Remove from user.purchases
+            await UserModel.updateOne(
+                { domain, userId },
+                { $pull: { purchases: { courseId: { $in: removedCourses } } } }
+            );
+        }
+    }
 }
