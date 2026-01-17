@@ -44,6 +44,9 @@ RUN pnpm run build
 FROM base AS runner
 WORKDIR /app
 
+# Install tini for proper process management (prevents zombie processes)
+RUN apk add --no-cache tini
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
@@ -64,4 +67,6 @@ USER nextjs
 
 ENV PORT=${PORT:-3000}
 
+# Use tini as init to properly reap zombie processes
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/web/server.js"]
