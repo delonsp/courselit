@@ -6,6 +6,7 @@ import User from "@models/User";
 import DomainModel, { Domain } from "@models/Domain";
 import { auth } from "@/auth";
 import { error } from "@/services/logger";
+import FormData from "form-data";
 
 const medialitServer = process.env.MEDIALIT_SERVER || "https://medialit.cloud";
 
@@ -57,59 +58,77 @@ export async function POST(req: NextRequest) {
 
         // Extract file and other fields
         const file = incomingFormData.get("file") as File | null;
-        const caption = incomingFormData.get("caption") as string || "";
-        const access = incomingFormData.get("access") as string || "private";
+        const caption = (incomingFormData.get("caption") as string) || "";
+        const access = (incomingFormData.get("access") as string) || "private";
 
         if (!file) {
-            return Response.json({ error: "No file provided" }, { status: 400 });
-        }
-
-        // Convert File to Buffer
-        const arrayBuffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-
-        // Create a proper File object for the outgoing request
-        const outgoingFile = new File([uint8Array], file.name, {
-            type: file.type || "application/octet-stream",
-        });
-
-        // Create a new FormData with the file
-        const outgoingFormData = new FormData();
-        outgoingFormData.append("file", outgoingFile);
-        outgoingFormData.append("caption", caption);
-        outgoingFormData.append("access", access);
-        outgoingFormData.append("group", domain.name);
-        outgoingFormData.append("apikey", process.env.MEDIALIT_APIKEY);
-
-        // Forward the request to MediaLit
-        const response = await fetch(`${medialitServer}/media/create`, {
-            method: "POST",
-            body: outgoingFormData,
-        });
-
-        // Handle non-JSON responses
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            const text = await response.text();
-            error(`MediaLit returned non-JSON response: ${text.substring(0, 200)}`);
             return Response.json(
-                { error: `MediaLit error: ${response.status} ${response.statusText}` },
-                { status: response.status || 500 },
+                { error: "No file provided" },
+                { status: 400 },
             );
         }
 
-        const jsonResponse = await response.json();
+        // Convert File to Buffer for form-data package
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Use form-data package (more compatible with busboy)
+        const form = new FormData();
+        form.append("file", buffer, {
+            filename: file.name,
+            contentType: file.type || "application/octet-stream",
+        });
+        form.append("caption", caption);
+        form.append("access", access);
+        form.append("group", domain.name);
+        form.append("apikey", process.env.MEDIALIT_APIKEY);
+
+        // Forward the request to MediaLit using http module via form-data
+        const response = await new Promise<{ status: number; data: any }>(
+            (resolve, reject) => {
+                form.submit(`${medialitServer}/media/create`, (err, res) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    let data = "";
+                    res.on("data", (chunk) => {
+                        data += chunk;
+                    });
+                    res.on("end", () => {
+                        try {
+                            resolve({
+                                status: res.statusCode || 500,
+                                data: JSON.parse(data),
+                            });
+                        } catch {
+                            resolve({
+                                status: res.statusCode || 500,
+                                data: { error: data },
+                            });
+                        }
+                    });
+                    res.on("error", reject);
+                });
+            },
+        );
 
         if (response.status === 200) {
             // Remove group from response (frontend doesn't need it)
-            if (jsonResponse && jsonResponse.group) {
-                delete jsonResponse.group;
+            if (response.data && response.data.group) {
+                delete response.data.group;
             }
-            return Response.json(jsonResponse);
+            return Response.json(response.data);
         } else {
-            error(`MediaLit upload failed: ${JSON.stringify(jsonResponse)}`);
+            error(`MediaLit upload failed: ${JSON.stringify(response.data)}`);
             return Response.json(
-                { error: jsonResponse.error || jsonResponse.message || "Upload failed" },
+                {
+                    error:
+                        response.data?.error ||
+                        response.data?.message ||
+                        "Upload failed",
+                },
                 { status: response.status },
             );
         }
