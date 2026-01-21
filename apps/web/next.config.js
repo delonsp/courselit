@@ -26,7 +26,11 @@ const nextConfig = {
         "@courselit/components-library",
     ],
     serverExternalPackages: ["pug", "liquidjs", "mongoose", "mongodb"],
-    experimental: {},
+    experimental: {
+        serverActions: {
+            bodySizeLimit: "50mb",
+        },
+    },
 };
 
 module.exports = nextConfig;

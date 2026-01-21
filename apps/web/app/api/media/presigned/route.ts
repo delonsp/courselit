@@ -1,12 +1,10 @@
 import { NextRequest } from "next/server";
 import { responses } from "@/config/strings";
-import * as medialitService from "@/services/medialit";
 import { UIConstants as constants } from "@courselit/common-models";
 import { checkPermission } from "@courselit/utils";
 import User from "@models/User";
 import DomainModel, { Domain } from "@models/Domain";
 import { auth } from "@/auth";
-import { error } from "@/services/logger";
 
 export async function POST(req: NextRequest) {
     const domain = await DomainModel.findOne<Domain>({
@@ -40,15 +38,15 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    try {
-        let response = await medialitService.getPresignedUrlForUpload(
-            domain.name,
+    if (!process.env.MEDIALIT_APIKEY) {
+        return Response.json(
+            { error: responses.medialit_apikey_notfound },
+            { status: 500 },
         );
-        return Response.json({ url: response });
-    } catch (err: any) {
-        error(err.message, {
-            stack: err.stack,
-        });
-        return Response.json({ error: err.message }, { status: 500 });
     }
+
+    // Return the proxy upload URL (self-hosted MediaLit)
+    // The actual upload goes through /api/media/upload which forwards to MediaLit
+    const uploadUrl = `${process.env.SITE_URL || ""}/api/media/upload`;
+    return Response.json({ url: uploadUrl });
 }

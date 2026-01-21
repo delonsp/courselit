@@ -58,6 +58,10 @@ export async function getMedia(mediaId: string): Promise<Media> {
     return response;
 }
 
+/**
+ * @deprecated This function is no longer used. Uploads now go through /api/media/upload proxy.
+ * Kept for backwards compatibility with MediaLit Cloud (if MEDIALIT_SERVER is external).
+ */
 export async function getPresignedUrlForUpload(
     domain: string,
 ): Promise<string> {
