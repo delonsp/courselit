@@ -6,9 +6,7 @@ import User from "@models/User";
 import DomainModel, { Domain } from "@models/Domain";
 import { auth } from "@/auth";
 import { error } from "@/services/logger";
-import FormData from "form-data";
-
-const medialitServer = process.env.MEDIALIT_SERVER || "https://medialit.cloud";
+import * as minioService from "@/services/minio";
 
 // Timeout for uploads (60 seconds) - Vercel/serverless specific
 export const maxDuration = 60;
@@ -45,21 +43,24 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    if (!process.env.MEDIALIT_APIKEY) {
+    // Check MinIO configuration
+    if (!minioService.isMinioConfigured()) {
         return Response.json(
-            { error: responses.medialit_apikey_notfound },
+            {
+                error: "MinIO is not configured. Please set MINIO_* environment variables.",
+            },
             { status: 500 },
         );
     }
 
     try {
         // Get the form data from the request
-        const incomingFormData = await req.formData();
+        const formData = await req.formData();
 
         // Extract file and other fields
-        const file = incomingFormData.get("file") as File | null;
-        const caption = (incomingFormData.get("caption") as string) || "";
-        const access = (incomingFormData.get("access") as string) || "private";
+        const file = formData.get("file") as File | null;
+        const caption = (formData.get("caption") as string) || "";
+        const access = (formData.get("access") as string) || "public";
 
         if (!file) {
             return Response.json(
@@ -68,72 +69,31 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Convert File to Buffer for form-data package
+        // Convert File to Buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Use form-data package (more compatible with busboy)
-        const form = new FormData();
-        form.append("file", buffer, {
-            filename: file.name,
-            contentType: file.type || "application/octet-stream",
-        });
-        form.append("caption", caption);
-        form.append("access", access);
-        form.append("group", domain.name);
-        form.append("apikey", process.env.MEDIALIT_APIKEY);
-
-        // Forward the request to MediaLit using http module via form-data
-        const response = await new Promise<{ status: number; data: any }>(
-            (resolve, reject) => {
-                form.submit(`${medialitServer}/media/create`, (err, res) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    let data = "";
-                    res.on("data", (chunk) => {
-                        data += chunk;
-                    });
-                    res.on("end", () => {
-                        try {
-                            resolve({
-                                status: res.statusCode || 500,
-                                data: JSON.parse(data),
-                            });
-                        } catch {
-                            resolve({
-                                status: res.statusCode || 500,
-                                data: { error: data },
-                            });
-                        }
-                    });
-                    res.on("error", reject);
-                });
-            },
+        // Upload directly to MinIO
+        const result = await minioService.uploadFile(
+            buffer,
+            file.name,
+            file.type || "application/octet-stream",
+            domain.name,
         );
 
-        if (response.status === 200) {
-            // Remove group from response (frontend doesn't need it)
-            if (response.data && response.data.group) {
-                delete response.data.group;
-            }
-            return Response.json(response.data);
-        } else {
-            error(`MediaLit upload failed: ${JSON.stringify(response.data)}`);
-            return Response.json(
-                {
-                    error:
-                        response.data?.error ||
-                        response.data?.message ||
-                        "Upload failed",
-                },
-                { status: response.status },
-            );
-        }
+        // Return response in MediaLit-compatible format
+        return Response.json({
+            mediaId: result.mediaId,
+            originalFileName: result.originalFileName,
+            mimeType: result.mimeType,
+            size: result.size,
+            thumbnail: result.thumbnail,
+            file: result.file,
+            caption,
+            access,
+        });
     } catch (err: any) {
-        error(`Upload proxy error: ${err.message}`, {
+        error(`Upload error: ${err.message}`, {
             stack: err.stack,
         });
         return Response.json({ error: err.message }, { status: 500 });
