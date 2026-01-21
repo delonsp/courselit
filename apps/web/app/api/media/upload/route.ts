@@ -53,17 +53,36 @@ export async function POST(req: NextRequest) {
 
     try {
         // Get the form data from the request
-        const formData = await req.formData();
+        const incomingFormData = await req.formData();
 
-        // Add the group (domain) and apikey to the form data
-        formData.append("group", domain.name);
-        formData.append("apikey", process.env.MEDIALIT_APIKEY);
+        // Create a new FormData to forward to MediaLit
+        const outgoingFormData = new FormData();
+
+        // Copy all fields from incoming FormData
+        for (const [key, value] of incomingFormData.entries()) {
+            outgoingFormData.append(key, value);
+        }
+
+        // Add the group (domain) and apikey
+        outgoingFormData.append("group", domain.name);
+        outgoingFormData.append("apikey", process.env.MEDIALIT_APIKEY);
 
         // Forward the request to MediaLit
         const response = await fetch(`${medialitServer}/media/create`, {
             method: "POST",
-            body: formData,
+            body: outgoingFormData,
         });
+
+        // Handle non-JSON responses
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            error(`MediaLit returned non-JSON response: ${text.substring(0, 200)}`);
+            return Response.json(
+                { error: `MediaLit error: ${response.status} ${response.statusText}` },
+                { status: response.status || 500 },
+            );
+        }
 
         const jsonResponse = await response.json();
 
@@ -74,13 +93,14 @@ export async function POST(req: NextRequest) {
             }
             return Response.json(jsonResponse);
         } else {
+            error(`MediaLit upload failed: ${JSON.stringify(jsonResponse)}`);
             return Response.json(
-                { error: jsonResponse.error || "Upload failed" },
+                { error: jsonResponse.error || jsonResponse.message || "Upload failed" },
                 { status: response.status },
             );
         }
     } catch (err: any) {
-        error(err.message, {
+        error(`Upload proxy error: ${err.message}`, {
             stack: err.stack,
         });
         return Response.json({ error: err.message }, { status: 500 });
