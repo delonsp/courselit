@@ -55,15 +55,25 @@ export async function POST(req: NextRequest) {
         // Get the form data from the request
         const incomingFormData = await req.formData();
 
-        // Create a new FormData to forward to MediaLit
-        const outgoingFormData = new FormData();
+        // Extract file and other fields
+        const file = incomingFormData.get("file") as File | null;
+        const caption = incomingFormData.get("caption") as string || "";
+        const access = incomingFormData.get("access") as string || "private";
 
-        // Copy all fields from incoming FormData
-        for (const [key, value] of incomingFormData.entries()) {
-            outgoingFormData.append(key, value);
+        if (!file) {
+            return Response.json({ error: "No file provided" }, { status: 400 });
         }
 
-        // Add the group (domain) and apikey
+        // Convert File to Buffer to avoid stream issues
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const blob = new Blob([buffer], { type: file.type });
+
+        // Create a new FormData with the buffered file
+        const outgoingFormData = new FormData();
+        outgoingFormData.append("file", blob, file.name);
+        outgoingFormData.append("caption", caption);
+        outgoingFormData.append("access", access);
         outgoingFormData.append("group", domain.name);
         outgoingFormData.append("apikey", process.env.MEDIALIT_APIKEY);
 
