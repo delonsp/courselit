@@ -64,14 +64,18 @@ export async function POST(req: NextRequest) {
             return Response.json({ error: "No file provided" }, { status: 400 });
         }
 
-        // Convert File to Buffer to avoid stream issues
+        // Convert File to Buffer
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const blob = new Blob([buffer], { type: file.type });
+        const uint8Array = new Uint8Array(arrayBuffer);
 
-        // Create a new FormData with the buffered file
+        // Create a proper File object for the outgoing request
+        const outgoingFile = new File([uint8Array], file.name, {
+            type: file.type || "application/octet-stream",
+        });
+
+        // Create a new FormData with the file
         const outgoingFormData = new FormData();
-        outgoingFormData.append("file", blob, file.name);
+        outgoingFormData.append("file", outgoingFile);
         outgoingFormData.append("caption", caption);
         outgoingFormData.append("access", access);
         outgoingFormData.append("group", domain.name);
