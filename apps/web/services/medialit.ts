@@ -31,10 +31,8 @@ export async function getPaginatedMedia({
             method: "POST",
             headers: {
                 "content-type": "application/json",
+                "x-medialit-apikey": process.env.MEDIALIT_APIKEY!,
             },
-            body: JSON.stringify({
-                apikey: process.env.MEDIALIT_APIKEY,
-            }),
             credentials: "same-origin",
         },
     );
@@ -53,10 +51,8 @@ export async function getMedia(mediaId: string): Promise<Media> {
         method: "POST",
         headers: {
             "content-type": "application/json",
+            "x-medialit-apikey": process.env.MEDIALIT_APIKEY!,
         },
-        body: JSON.stringify({
-            apikey: process.env.MEDIALIT_APIKEY,
-        }),
     });
     response = await response.json();
     return response;
@@ -67,14 +63,14 @@ export async function getPresignedUrlForUpload(
 ): Promise<string> {
     checkMediaLitAPIKeyOrThrow();
     let response: any = await fetch(
-        `${medialitServer}/media/presigned/create`,
+        `${medialitServer}/media/signature/create`,
         {
             method: "POST",
             headers: {
                 "content-type": "application/json",
+                "x-medialit-apikey": process.env.MEDIALIT_APIKEY!,
             },
             body: JSON.stringify({
-                apikey: process.env.MEDIALIT_APIKEY,
                 group: domain,
             }),
         },
@@ -85,7 +81,7 @@ export async function getPresignedUrlForUpload(
         throw new Error(response.error);
     }
 
-    return response.message;
+    return response.signature;
 }
 
 export async function deleteMedia(mediaId: string): Promise<boolean> {
@@ -96,10 +92,8 @@ export async function deleteMedia(mediaId: string): Promise<boolean> {
             method: "DELETE",
             headers: {
                 "content-type": "application/json",
+                "x-medialit-apikey": process.env.MEDIALIT_APIKEY!,
             },
-            body: JSON.stringify({
-                apikey: process.env.MEDIALIT_APIKEY,
-            }),
         },
     );
     response = await response.json();
