@@ -18,6 +18,7 @@ import {
     TOAST_TITLE_ERROR,
     NOT_ENROLLED_HEADER,
 } from "@/ui-config/strings";
+import { responses } from "@/config/strings";
 import {
     TextRenderer,
     Link,
@@ -204,7 +205,7 @@ export const LessonViewer = ({
                             {NOT_ENROLLED_HEADER}
                         </h1>
                         <p className="mb-4">{error}.</p>
-                        {error === "You are not enrolled in the course" && (
+                        {error === responses.not_enrolled && (
                             <Link
                                 href={`/checkout?type=${Constants.MembershipEntityType.COURSE}&id=${productId}`}
                             >
