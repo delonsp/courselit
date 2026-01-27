@@ -75,7 +75,13 @@ export const getLessonDetails = async (id: string, ctx: GQLContext) => {
         throw new Error(responses.item_not_found);
     }
 
+    // Admins can view all lessons regardless of enrollment
+    const isAdmin =
+        ctx.user &&
+        checkPermission(ctx.user.permissions, [permissions.manageAnyCourse]);
+
     if (
+        !isAdmin &&
         lesson.requiresEnrollment &&
         (!ctx.user ||
             !ctx.user.purchases.some(
@@ -85,7 +91,7 @@ export const getLessonDetails = async (id: string, ctx: GQLContext) => {
         throw new Error(responses.not_enrolled);
     }
 
-    if (await isPartOfDripGroup(lesson, ctx.subdomain._id)) {
+    if (!isAdmin && (await isPartOfDripGroup(lesson, ctx.subdomain._id))) {
         if (!ctx.user) {
             throw new Error(responses.drip_not_released);
         }
