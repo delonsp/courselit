@@ -577,11 +577,10 @@ export default function LessonPage() {
                             }}
                             type="lesson"
                         />
-                        {!(lesson?.lessonId && lesson?.title) && (
+                        {!lesson?.lessonId && (
                             <p className="text-xs text-muted-foreground flex items-center gap-2">
                                 <Info className="w-4 h-4" />
-                                Set the title of the lesson to enable media
-                                upload
+                                Salve a aula primeiro para enviar arquivos
                             </p>
                         )}
                     </div>
