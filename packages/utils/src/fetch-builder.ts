@@ -19,6 +19,7 @@ class Fetch {
         private httpMethod: string,
         private isGraphQLEndpoint?: boolean,
         private headers?: Record<string, string>,
+        private signal?: AbortSignal,
     ) {}
 
     async exec(options?: ExecOptions) {
@@ -26,6 +27,7 @@ class Fetch {
             method: this.httpMethod,
             credentials: "same-origin",
             headers: {},
+            signal: this.signal,
         };
 
         if (this.isGraphQLEndpoint) {
@@ -81,6 +83,7 @@ class FetchBuilder {
     private isGraphQLEndpoint = false;
     private httpMethod = "POST";
     private headers = {};
+    private signal?: AbortSignal;
 
     setUrl(url: string) {
         this.url = url;
@@ -107,6 +110,11 @@ class FetchBuilder {
         return this;
     }
 
+    setSignal(signal: AbortSignal) {
+        this.signal = signal;
+        return this;
+    }
+
     build() {
         return new Fetch(
             this.url,
@@ -114,6 +122,7 @@ class FetchBuilder {
             this.httpMethod,
             this.isGraphQLEndpoint,
             this.headers,
+            this.signal,
         );
     }
 }

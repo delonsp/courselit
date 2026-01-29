@@ -658,10 +658,15 @@ export default function LessonPage() {
     };
 
     useEffect(() => {
-        lessonId && loadLesson(lessonId);
+        if (!lessonId) return;
+        const abortController = new AbortController();
+        loadLesson(lessonId, abortController.signal);
+        return () => {
+            abortController.abort();
+        };
     }, [lessonId]);
 
-    const loadLesson = async (id: string) => {
+    const loadLesson = async (id: string, signal?: AbortSignal) => {
         setIsLoading(true);
         const query = `
             query {
@@ -686,14 +691,18 @@ export default function LessonPage() {
             }
         `;
 
-        const fetch = new FetchBuilder()
+        const fetchBuilder = new FetchBuilder()
             .setUrl(`${address.backend}/api/graph`)
             .setPayload(query)
-            .setIsGraphQLEndpoint(true)
-            .build();
+            .setIsGraphQLEndpoint(true);
+        if (signal) {
+            fetchBuilder.setSignal(signal);
+        }
+        const fetch = fetchBuilder.build();
 
         try {
             const response = await fetch.exec();
+            if (signal?.aborted) return;
             if (response.lesson) {
                 const loadedLesson = Object.assign({}, response.lesson, {
                     type: response.lesson.type.toLowerCase() as LessonType,
@@ -727,13 +736,16 @@ export default function LessonPage() {
                 }
             }
         } catch (err: any) {
+            if (isCancelled()) return;
             toast({
                 title: TOAST_TITLE_ERROR,
                 description: err.message,
                 variant: "destructive",
             });
         } finally {
-            setIsLoading(false);
+            if (!isCancelled()) {
+                setIsLoading(false);
+            }
         }
     };
 
