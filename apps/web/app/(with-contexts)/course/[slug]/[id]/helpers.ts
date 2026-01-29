@@ -94,6 +94,7 @@ export const getProduct = async (
 export function formatCourse(
     post: Course & { lessons: Lesson[]; firstLesson: string; groups: Group[] },
 ): CourseFrontend {
+    const groupIds = new Set(post.groups.map((g) => g.id));
     for (const group of sortCourseGroups(post as Course)) {
         (group as GroupWithLessons).lessons = post.lessons
             .filter((lesson: Lesson) => lesson.groupId === group.id)
@@ -106,6 +107,19 @@ export function formatCourse(
                     (indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB)
                 );
             });
+    }
+
+    const orphaned = post.lessons.filter(
+        (lesson: Lesson) => !groupIds.has(lesson.groupId),
+    );
+    if (orphaned.length > 0) {
+        console.warn(
+            `[formatCourse] ${orphaned.length} orphaned lesson(s) found (groupId not matching any group):`,
+            orphaned.map((l: Lesson) => ({
+                lessonId: l.lessonId,
+                groupId: l.groupId,
+            })),
+        );
     }
 
     return {
