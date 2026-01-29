@@ -8,7 +8,7 @@ import { FetchBuilder } from "@courselit/utils";
 import { Text2 } from "@courselit/page-primitives";
 import Link from "next/link";
 import { truncate } from "@ui-lib/utils";
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import ClientSideTextRenderer from "./client-side-text-renderer";
 import {
     Breadcrumb,
@@ -66,15 +66,16 @@ export default async function ProductPage(props: {
                 </Breadcrumb>
                 <Header1 theme={theme.theme}>{product?.title}</Header1>
                 <div className="flex items-center gap-4 mb-6">
-                    <Image
+                    <img
                         src={
                             product?.user?.avatar?.file ||
+                            product?.user?.avatar?.thumbnail ||
                             "/courselit_backdrop_square.webp"
                         }
                         alt={product?.user?.name || ""}
                         width={32}
                         height={32}
-                        className="rounded-full aspect-square"
+                        className="rounded-full aspect-square object-cover"
                     />
                     <div className="flex items-center gap-2">
                         <Text2 theme={theme.theme}>
@@ -85,13 +86,18 @@ export default async function ProductPage(props: {
                         </Caption>
                     </div>
                 </div>
-                {product?.featuredImage && (
+                {(product?.featuredImage?.file ||
+                    product?.featuredImage?.thumbnail) && (
                     <div className="mb-4 border rounded overflow-hidden">
-                        <Image
+                        <img
                             alt={product.featuredImage.caption || ""}
-                            src={product.featuredImage.file!}
+                            src={
+                                product.featuredImage.file ||
+                                product.featuredImage.thumbnail
+                            }
                             width={640}
                             height={360}
+                            className="w-full object-cover"
                         />
                     </div>
                 )}
