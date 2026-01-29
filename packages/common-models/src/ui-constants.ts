@@ -80,14 +80,10 @@ export const EMBED_ALLOWED_DOMAINS = [
 ];
 
 export const isEmbedUrlAllowed = (url: string): boolean => {
-    try {
-        const parsed = new URL(url);
-        return EMBED_ALLOWED_DOMAINS.some(
-            (domain) =>
-                parsed.hostname === domain ||
-                parsed.hostname.endsWith(`.${domain}`),
-        );
-    } catch {
-        return false;
-    }
+    const match = url.match(/^https?:\/\/([^/:]+)/);
+    if (!match) return false;
+    const hostname = match[1];
+    return EMBED_ALLOWED_DOMAINS.some(
+        (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+    );
 };
