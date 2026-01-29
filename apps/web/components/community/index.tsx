@@ -622,13 +622,14 @@ export function CommunityForum({
         switch (media.type) {
             case "image":
                 if (media.media) {
+                    const src =
+                        options && options.renderActualFile
+                            ? media.media.file || media.media.thumbnail
+                            : media.media.thumbnail || media.media.file;
+                    if (!src) return null;
                     return (
                         <Image
-                            src={
-                                options && options.renderActualFile
-                                    ? media.media.file!
-                                    : media.media.thumbnail
-                            }
+                            src={src}
                             alt="Post media"
                             className="w-48 h-48 object-cover rounded-md"
                             width={96}
