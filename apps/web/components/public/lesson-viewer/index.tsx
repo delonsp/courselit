@@ -36,6 +36,9 @@ import {
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowDownward } from "@courselit/icons";
 import { isEnrolled } from "../../../ui-lib/utils";
+import { checkPermission } from "@courselit/utils";
+import { UIConstants } from "@courselit/common-models";
+const { permissions } = UIConstants;
 import LessonEmbedViewer from "./embed-viewer";
 import QuizViewer from "./quiz-viewer";
 import { getUserProfile } from "@/app/(with-contexts)/helpers";
@@ -334,46 +337,55 @@ export const LessonViewer = ({
                     </>
                 )}
             </article>
-            {lesson && isEnrolled(lesson.courseId, profile) && (
-                <div className="bg-background fixed bottom-0 left-0 w-full p-4 flex justify-end">
-                    <div className="mr-2">
-                        {!lesson.prevLesson && (
-                            <Link href={`/course/${slug}/${lesson.courseId}`}>
-                                <Button2
-                                    variant="secondary"
-                                    className="flex gap-1 items-center"
-                                    disabled={loading}
+            {lesson &&
+                (isEnrolled(lesson.courseId, profile) ||
+                    checkPermission(profile.permissions, [
+                        permissions.manageAnyCourse,
+                    ])) && (
+                    <div className="bg-background fixed bottom-0 left-0 w-full p-4 flex justify-end">
+                        <div className="mr-2">
+                            {!lesson.prevLesson && (
+                                <Link
+                                    href={`/course/${slug}/${lesson.courseId}`}
                                 >
-                                    <ArrowLeft />
-                                    {COURSE_PROGRESS_INTRO}
-                                </Button2>
-                            </Link>
-                        )}
-                        {lesson.prevLesson && (
-                            <Link
-                                href={`/course/${slug}/${lesson.courseId}/${lesson.prevLesson}`}
-                            >
-                                <Button2
-                                    variant="secondary"
-                                    className="flex gap-1 items-center"
-                                    disabled={loading}
+                                    <Button2
+                                        variant="secondary"
+                                        className="flex gap-1 items-center"
+                                        disabled={loading}
+                                    >
+                                        <ArrowLeft />
+                                        {COURSE_PROGRESS_INTRO}
+                                    </Button2>
+                                </Link>
+                            )}
+                            {lesson.prevLesson && (
+                                <Link
+                                    href={`/course/${slug}/${lesson.courseId}/${lesson.prevLesson}`}
                                 >
-                                    <ArrowLeft /> {COURSE_PROGRESS_PREV}
-                                </Button2>
-                            </Link>
-                        )}
+                                    <Button2
+                                        variant="secondary"
+                                        className="flex gap-1 items-center"
+                                        disabled={loading}
+                                    >
+                                        <ArrowLeft /> {COURSE_PROGRESS_PREV}
+                                    </Button2>
+                                </Link>
+                            )}
+                        </div>
+                        <Button2
+                            onClick={markCompleteAndNext}
+                            disabled={loading}
+                        >
+                            {lesson.nextLesson ? (
+                                <div className="flex gap-1 items-center">
+                                    {COURSE_PROGRESS_NEXT} <ArrowRight />
+                                </div>
+                            ) : (
+                                COURSE_PROGRESS_FINISH
+                            )}
+                        </Button2>
                     </div>
-                    <Button2 onClick={markCompleteAndNext} disabled={loading}>
-                        {lesson.nextLesson ? (
-                            <div className="flex gap-1 items-center">
-                                {COURSE_PROGRESS_NEXT} <ArrowRight />
-                            </div>
-                        ) : (
-                            COURSE_PROGRESS_FINISH
-                        )}
-                    </Button2>
-                </div>
-            )}
+                )}
         </div>
     );
 };

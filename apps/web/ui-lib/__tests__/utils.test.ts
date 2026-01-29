@@ -128,3 +128,58 @@ describe("isLessonCompleted", () => {
         ).toBe(false);
     });
 });
+
+// Test isEnrolled - verifies admin users see navigation buttons without enrollment (US-007)
+describe("isEnrolled", () => {
+    const MANAGE_ANY_COURSE = "course:manage_any";
+
+    function checkPermission(
+        actualPermissions: string[],
+        desiredPermissions: string[],
+    ) {
+        return actualPermissions.some((permission) =>
+            desiredPermissions.includes(permission),
+        );
+    }
+
+    const isEnrolled = (
+        courseId: string,
+        profile: { permissions: string[]; purchases: { courseId: string }[] },
+    ) =>
+        checkPermission(profile.permissions, [MANAGE_ANY_COURSE]) ||
+        profile.purchases.some(
+            (purchase: any) => purchase.courseId === courseId,
+        );
+
+    it("returns true for admin with manageAnyCourse even without enrollment", () => {
+        const profile = {
+            permissions: [MANAGE_ANY_COURSE],
+            purchases: [],
+        };
+        expect(isEnrolled("course-1", profile)).toBe(true);
+    });
+
+    it("returns true for enrolled non-admin user", () => {
+        const profile = {
+            permissions: [],
+            purchases: [{ courseId: "course-1" }],
+        };
+        expect(isEnrolled("course-1", profile)).toBe(true);
+    });
+
+    it("returns false for non-admin user not enrolled", () => {
+        const profile = {
+            permissions: [],
+            purchases: [],
+        };
+        expect(isEnrolled("course-1", profile)).toBe(false);
+    });
+
+    it("returns false for non-admin enrolled in different course", () => {
+        const profile = {
+            permissions: [],
+            purchases: [{ courseId: "course-2" }],
+        };
+        expect(isEnrolled("course-1", profile)).toBe(false);
+    });
+});
