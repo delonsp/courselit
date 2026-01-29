@@ -37,10 +37,12 @@ export const formulateCourseUrl = (course: any, backend = "") =>
     }`;
 
 export const getAddress = (host: string) => {
+    const protocol =
+        typeof window !== "undefined" ? window.location.protocol : "https:";
     return {
         domain: extractDomainFromURL(host),
         backend: host,
-        frontend: `http://${host}`,
+        frontend: `${protocol}//${host}`,
     };
 };
 
