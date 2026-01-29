@@ -159,6 +159,13 @@ export const LessonViewer = ({
                 } else {
                     router.push(`/dashboard/my-content`);
                 }
+            } else {
+                toast({
+                    title: TOAST_TITLE_ERROR,
+                    description:
+                        "Não foi possível marcar a aula como concluída. Tente novamente.",
+                    variant: "destructive",
+                });
             }
         } catch (err: any) {
             toast({
