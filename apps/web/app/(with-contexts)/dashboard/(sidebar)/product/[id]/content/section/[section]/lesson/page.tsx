@@ -736,14 +736,14 @@ export default function LessonPage() {
                 }
             }
         } catch (err: any) {
-            if (isCancelled()) return;
+            if (signal?.aborted) return;
             toast({
                 title: TOAST_TITLE_ERROR,
                 description: err.message,
                 variant: "destructive",
             });
         } finally {
-            if (!isCancelled()) {
+            if (!signal?.aborted) {
                 setIsLoading(false);
             }
         }
