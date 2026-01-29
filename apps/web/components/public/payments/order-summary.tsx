@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import {
     Collapsible,
     CollapsibleContent,
@@ -128,14 +128,13 @@ export function MobileOrderSummary({
                             <div className="p-4 space-y-4">
                                 <div className="flex gap-4">
                                     <div className="h-16 w-16 relative rounded-lg overflow-hidden">
-                                        <Image
+                                        <img
                                             src={
                                                 product.featuredImage ||
                                                 "/courselit_backdrop_square.webp"
                                             }
                                             alt={product.name}
-                                            fill
-                                            className="object-cover"
+                                            className="object-cover w-full h-full absolute inset-0"
                                         />
                                     </div>
                                     <div>
@@ -207,14 +206,13 @@ export function DesktopOrderSummary({
                     </Header3>
                     <div className="flex items-start gap-4 pb-4">
                         <div className="h-16 w-16 relative rounded-lg overflow-hidden bg-muted">
-                            <Image
+                            <img
                                 src={
                                     product.featuredImage ||
                                     "/courselit_backdrop_square.webp"
                                 }
                                 alt={product.name}
-                                fill
-                                className="object-cover"
+                                className="object-cover w-full h-full absolute inset-0"
                             />
                         </div>
                         <div>
