@@ -74,6 +74,8 @@ export function CommunityForum({
         [postId: string]: string;
     }>({});
     const commentsEndRef = useRef<HTMLDivElement>(null);
+    const likeDebounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+    const pinDebounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
     const address = useContext(AddressContext);
     const { toast } = useToast();
     const [categories, setCategories] = useState<string[]>(["All"]);
@@ -251,7 +253,7 @@ export function CommunityForum({
         );
     };
 
-    const handleLike = async (postId: string, e?: React.MouseEvent) => {
+    const handleLike = (postId: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
 
         setPosts((prevPosts) =>
@@ -268,46 +270,55 @@ export function CommunityForum({
             ),
         );
 
-        const query = `
-            mutation ($communityId: String!, $postId: String!) {
-                togglePostLike(communityId: $communityId, postId: $postId) {
-                    postId
-                }
-            }
-        `;
-        try {
-            const fetch = new FetchBuilder()
-                .setUrl(`${address.backend}/api/graph`)
-                .setPayload({
-                    query,
-                    variables: { postId, communityId: id },
-                })
-                .setIsGraphQLEndpoint(true)
-                .build();
-            await fetch.exec();
-        } catch (err) {
-            setPosts((prevPosts) =>
-                prevPosts.map((post) =>
-                    post.postId === postId
-                        ? {
-                              ...post,
-                              likesCount: post.hasLiked
-                                  ? post.likesCount - 1
-                                  : post.likesCount + 1,
-                              hasLiked: !post.hasLiked,
-                          }
-                        : post,
-                ),
-            );
-            console.error(err.message);
-            toast({
-                title: TOAST_TITLE_ERROR,
-                description: err.message,
-            });
+        const existingTimer = likeDebounceTimers.current.get(postId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
         }
+
+        const timer = setTimeout(async () => {
+            likeDebounceTimers.current.delete(postId);
+            const query = `
+                mutation ($communityId: String!, $postId: String!) {
+                    togglePostLike(communityId: $communityId, postId: $postId) {
+                        postId
+                    }
+                }
+            `;
+            try {
+                const fetch = new FetchBuilder()
+                    .setUrl(`${address.backend}/api/graph`)
+                    .setPayload({
+                        query,
+                        variables: { postId, communityId: id },
+                    })
+                    .setIsGraphQLEndpoint(true)
+                    .build();
+                await fetch.exec();
+            } catch (err) {
+                setPosts((prevPosts) =>
+                    prevPosts.map((post) =>
+                        post.postId === postId
+                            ? {
+                                  ...post,
+                                  likesCount: post.hasLiked
+                                      ? post.likesCount - 1
+                                      : post.likesCount + 1,
+                                  hasLiked: !post.hasLiked,
+                              }
+                            : post,
+                    ),
+                );
+                console.error(err.message);
+                toast({
+                    title: TOAST_TITLE_ERROR,
+                    description: err.message,
+                });
+            }
+        }, 300);
+        likeDebounceTimers.current.set(postId, timer);
     };
 
-    const togglePin = async (postId: string, e?: React.MouseEvent) => {
+    const togglePin = (postId: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
         setPosts((prevPosts) =>
             prevPosts.map((post) =>
@@ -316,37 +327,47 @@ export function CommunityForum({
                     : post,
             ),
         );
-        const query = `
-            mutation ($communityId: String!, $postId: String!) {
-                togglePinned(communityId: $communityId, postId: $postId) {
-                    postId
-                }
-            }
-        `;
-        try {
-            const fetch = new FetchBuilder()
-                .setUrl(`${address.backend}/api/graph`)
-                .setPayload({
-                    query,
-                    variables: { postId, communityId: id },
-                })
-                .setIsGraphQLEndpoint(true)
-                .build();
-            await fetch.exec();
-        } catch (err) {
-            setPosts((prevPosts) =>
-                prevPosts.map((post) =>
-                    post.postId === postId
-                        ? { ...post, pinned: !post.pinned }
-                        : post,
-                ),
-            );
-            console.error(err.message);
-            toast({
-                title: TOAST_TITLE_ERROR,
-                description: err.message,
-            });
+
+        const existingTimer = pinDebounceTimers.current.get(postId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
         }
+
+        const timer = setTimeout(async () => {
+            pinDebounceTimers.current.delete(postId);
+            const query = `
+                mutation ($communityId: String!, $postId: String!) {
+                    togglePinned(communityId: $communityId, postId: $postId) {
+                        postId
+                    }
+                }
+            `;
+            try {
+                const fetch = new FetchBuilder()
+                    .setUrl(`${address.backend}/api/graph`)
+                    .setPayload({
+                        query,
+                        variables: { postId, communityId: id },
+                    })
+                    .setIsGraphQLEndpoint(true)
+                    .build();
+                await fetch.exec();
+            } catch (err) {
+                setPosts((prevPosts) =>
+                    prevPosts.map((post) =>
+                        post.postId === postId
+                            ? { ...post, pinned: !post.pinned }
+                            : post,
+                    ),
+                );
+                console.error(err.message);
+                toast({
+                    title: TOAST_TITLE_ERROR,
+                    description: err.message,
+                });
+            }
+        }, 300);
+        pinDebounceTimers.current.set(postId, timer);
     };
 
     const handleCommentLike = (postId: number, commentId: number) => {
