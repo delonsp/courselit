@@ -62,7 +62,8 @@ export function generateSideBarItems(
                 Constants.dripType[0].split("-")[0].toUpperCase()
             ) {
                 const delayInMillis =
-                    group?.drip?.delayInMillis ?? 0 + lastGroupDripDateInMillis;
+                    (group?.drip?.delayInMillis ?? 0) +
+                    lastGroupDripDateInMillis;
                 const daysUntilAvailable = Math.ceil(
                     (delayInMillis - Date.now()) / 86400000,
                 );
