@@ -26,7 +26,9 @@ async function validateWooSecret(req: NextRequest): Promise<boolean> {
     return wooSecret === expectedSecret;
 }
 
-async function getDomain(domainName: string | null): Promise<(Domain & { _id: mongoose.Types.ObjectId }) | null> {
+async function getDomain(
+    domainName: string | null,
+): Promise<(Domain & { _id: mongoose.Types.ObjectId }) | null> {
     if (!domainName) return null;
     return DomainModel.findOne({ name: domainName });
 }
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
         if (!(await validateWooSecret(req))) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 401 },
             );
         }
 
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
         if (!domain) {
             return NextResponse.json(
                 { error: "Domain not found" },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
         if (!email || !communityId) {
             return NextResponse.json(
                 { error: "Missing required fields: email, communityId" },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json(
                 { error: "User not found" },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -86,13 +88,15 @@ export async function POST(req: NextRequest) {
         if (!membership) {
             return NextResponse.json(
                 { error: "Membership not found" },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
         // Check if already revoked
-        if (membership.status === Constants.MembershipStatus.EXPIRED ||
-            membership.status === Constants.MembershipStatus.REJECTED) {
+        if (
+            membership.status === Constants.MembershipStatus.EXPIRED ||
+            membership.status === Constants.MembershipStatus.REJECTED
+        ) {
             return NextResponse.json({
                 success: true,
                 message: "Membership already revoked",
@@ -102,11 +106,14 @@ export async function POST(req: NextRequest) {
         }
 
         // If there's a wooSubscriptionId, verify it matches
-        if (wooSubscriptionId && membership.subscriptionId &&
-            membership.subscriptionId !== wooSubscriptionId) {
+        if (
+            wooSubscriptionId &&
+            membership.subscriptionId &&
+            membership.subscriptionId !== wooSubscriptionId
+        ) {
             return NextResponse.json(
                 { error: "Subscription ID mismatch" },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
@@ -121,7 +128,8 @@ export async function POST(req: NextRequest) {
 
         // Update membership status to EXPIRED
         membership.status = Constants.MembershipStatus.EXPIRED;
-        membership.rejectionReason = reason || "WooCommerce subscription cancelled/expired";
+        membership.rejectionReason =
+            reason || "WooCommerce subscription cancelled/expired";
         await (membership as any).save();
 
         info(`WooCommerce integration: Revoked membership`, {
@@ -138,7 +146,6 @@ export async function POST(req: NextRequest) {
             userId: user.userId,
             status: membership.status,
         });
-
     } catch (err: any) {
         error(`WooCommerce revoke membership error: ${err.message}`, {
             stack: err.stack,
@@ -146,7 +153,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
             { error: "Internal server error" },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }

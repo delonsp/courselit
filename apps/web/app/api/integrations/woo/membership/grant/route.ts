@@ -4,7 +4,12 @@ import UserModel from "@models/User";
 import MembershipModel from "@models/Membership";
 import PaymentPlanModel from "@models/PaymentPlan";
 import CommunityModel from "@models/Community";
-import { Constants, Membership, PaymentPlan, User } from "@courselit/common-models";
+import {
+    Constants,
+    Membership,
+    PaymentPlan,
+    User,
+} from "@courselit/common-models";
 import { activateMembership } from "@/app/api/payment/helpers";
 import { error, info } from "@/services/logger";
 import mongoose from "mongoose";
@@ -30,7 +35,9 @@ async function validateWooSecret(req: NextRequest): Promise<boolean> {
     return wooSecret === expectedSecret;
 }
 
-async function getDomain(domainName: string | null): Promise<(Domain & { _id: mongoose.Types.ObjectId }) | null> {
+async function getDomain(
+    domainName: string | null,
+): Promise<(Domain & { _id: mongoose.Types.ObjectId }) | null> {
     if (!domainName) return null;
     return DomainModel.findOne({ name: domainName });
 }
@@ -38,7 +45,7 @@ async function getDomain(domainName: string | null): Promise<(Domain & { _id: mo
 async function findOrCreateUser(
     domain: Domain & { _id: mongoose.Types.ObjectId },
     email: string,
-    name?: string
+    name?: string,
 ): Promise<User & { _id: mongoose.Types.ObjectId }> {
     const sanitizedEmail = email.toLowerCase().trim();
 
@@ -77,7 +84,7 @@ export async function POST(req: NextRequest) {
         if (!(await validateWooSecret(req))) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 401 },
             );
         }
 
@@ -87,7 +94,7 @@ export async function POST(req: NextRequest) {
         if (!domain) {
             return NextResponse.json(
                 { error: "Domain not found" },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -97,8 +104,10 @@ export async function POST(req: NextRequest) {
         // Validate required fields
         if (!email || !communityId || !planId) {
             return NextResponse.json(
-                { error: "Missing required fields: email, communityId, planId" },
-                { status: 400 }
+                {
+                    error: "Missing required fields: email, communityId, planId",
+                },
+                { status: 400 },
             );
         }
 
@@ -112,7 +121,7 @@ export async function POST(req: NextRequest) {
         if (!community) {
             return NextResponse.json(
                 { error: "Community not found" },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -127,7 +136,7 @@ export async function POST(req: NextRequest) {
         if (!paymentPlan) {
             return NextResponse.json(
                 { error: "Payment plan not found" },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -144,7 +153,8 @@ export async function POST(req: NextRequest) {
 
         if (membership) {
             // Update existing membership - always process to handle reactivation
-            const wasActive = membership.status === Constants.MembershipStatus.ACTIVE;
+            const wasActive =
+                membership.status === Constants.MembershipStatus.ACTIVE;
 
             // Update membership fields but DON'T set status to ACTIVE yet
             // Let activateMembership() handle the status change so it processes included products
@@ -209,7 +219,6 @@ export async function POST(req: NextRequest) {
             userId: user.userId,
             status: membership.status,
         });
-
     } catch (err: any) {
         error(`WooCommerce grant membership error: ${err.message}`, {
             stack: err.stack,
@@ -217,7 +226,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
             { error: "Internal server error" },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }

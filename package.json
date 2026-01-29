@@ -30,6 +30,7 @@
   },
   "packageManager": "pnpm@10.17.0+sha512.fce8a3dd29a4ed2ec566fb53efbb04d8c44a0f05bc6f24a73046910fb9c3ce7afa35a0980500668fa3573345bd644644fa98338fa168235c80f4aa17aa17fbef",
   "devDependencies": {
+    "@changesets/cli": "^2.29.4",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -49,8 +50,7 @@
     "prettier": "^3.0.2",
     "tailwindcss": "^3.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2",
-    "@changesets/cli": "^2.29.4"
+    "typescript": "^5.8.2"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -70,5 +70,9 @@
       "react-dom": "^18.3.1",
       "typescript": "^4.9.5"
     }
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.972.0",
+    "@aws-sdk/s3-request-presigner": "^3.972.0"
   }
 }

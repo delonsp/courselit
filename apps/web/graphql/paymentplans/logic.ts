@@ -284,10 +284,10 @@ export async function updatePlan({
     if (includedProducts !== undefined) {
         const newIncludedProducts = includedProducts || [];
         const addedCourses = newIncludedProducts.filter(
-            (courseId) => !oldIncludedProducts.includes(courseId)
+            (courseId) => !oldIncludedProducts.includes(courseId),
         );
         const removedCourses = oldIncludedProducts.filter(
-            (courseId) => !newIncludedProducts.includes(courseId)
+            (courseId) => !newIncludedProducts.includes(courseId),
         );
 
         if (addedCourses.length > 0 || removedCourses.length > 0) {
@@ -516,7 +516,7 @@ export async function deleteMembershipsActivatedViaPaymentPlan({
     if (courseIdsToRemove.length > 0) {
         await UserModel.updateOne(
             { domain, userId },
-            { $pull: { purchases: { courseId: { $in: courseIdsToRemove } } } }
+            { $pull: { purchases: { courseId: { $in: courseIdsToRemove } } } },
         );
     }
 }
@@ -563,13 +563,14 @@ export async function syncMembersWithPlanChanges({
     }
 
     // Get published courses for the added courses
-    const coursesToAdd = addedCourses.length > 0
-        ? await CourseModel.find({
-              domain,
-              courseId: { $in: addedCourses },
-              published: true,
-          })
-        : [];
+    const coursesToAdd =
+        addedCourses.length > 0
+            ? await CourseModel.find({
+                  domain,
+                  courseId: { $in: addedCourses },
+                  published: true,
+              })
+            : [];
 
     // Process each active member
     for (const membership of activeMemberships) {
@@ -620,7 +621,7 @@ export async function syncMembersWithPlanChanges({
             // Remove from user.purchases
             await UserModel.updateOne(
                 { domain, userId },
-                { $pull: { purchases: { courseId: { $in: removedCourses } } } }
+                { $pull: { purchases: { courseId: { $in: removedCourses } } } },
             );
         }
     }

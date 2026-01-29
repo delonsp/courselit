@@ -101,11 +101,15 @@ export const getGroupedLessons = async (
                 .filter(
                     (lesson: GroupLessonItem) => lesson.groupId === group.id,
                 )
-                .sort(
-                    (a: GroupLessonItem, b: GroupLessonItem) =>
-                        group.lessonsOrder?.indexOf(a.lessonId) -
-                        group.lessonsOrder?.indexOf(b.lessonId),
-                ),
+                .sort((a: GroupLessonItem, b: GroupLessonItem) => {
+                    if (!group.lessonsOrder) return 0;
+                    const indexA = group.lessonsOrder.indexOf(a.lessonId);
+                    const indexB = group.lessonsOrder.indexOf(b.lessonId);
+                    return (
+                        (indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA) -
+                        (indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB)
+                    );
+                }),
         );
     }
     return lessonsInSequentialOrder;

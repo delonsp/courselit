@@ -268,7 +268,7 @@ In the `Design` panel, you can customize:
 - Maximum width
 - Vertical padding
 - Social media links (Facebook, Twitter, Instagram, LinkedIn, YouTube, Discord, GitHub)
-    </details>
+      </details>
 
 ## [Shared blocks](#shared-blocks)
 
