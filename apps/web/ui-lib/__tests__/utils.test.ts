@@ -56,7 +56,9 @@ describe("isLessonCompleted", () => {
     }: {
         courseId: string;
         lessonId: string;
-        profile: { purchases: { courseId: string; completedLessons: string[] }[] };
+        profile: {
+            purchases: { courseId: string; completedLessons: string[] }[];
+        };
     }) => {
         const indexOfCurrentCourse = profile.purchases.findIndex(
             (purchase) => purchase.courseId === courseId,
@@ -96,7 +98,10 @@ describe("isLessonCompleted", () => {
     it("returns true when lesson is in completedLessons", () => {
         const profile = {
             purchases: [
-                { courseId: "course-1", completedLessons: ["lesson-a", "lesson-b"] },
+                {
+                    courseId: "course-1",
+                    completedLessons: ["lesson-a", "lesson-b"],
+                },
             ],
         };
         expect(
