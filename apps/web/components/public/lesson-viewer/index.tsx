@@ -280,14 +280,18 @@ export const LessonViewer = ({
                         {String.prototype.toUpperCase.call(LESSON_TYPE_PDF) ===
                             lesson.type && (
                             <div>
-                                <iframe
-                                    frameBorder="0"
-                                    width="100%"
-                                    height="500"
-                                    src={`${
-                                        lesson.media && lesson.media.file
-                                    }#view=fit`}
-                                ></iframe>
+                                {lesson.media?.file ? (
+                                    <iframe
+                                        frameBorder="0"
+                                        width="100%"
+                                        height="500"
+                                        src={`${lesson.media.file}#view=fit`}
+                                    ></iframe>
+                                ) : (
+                                    <p className="text-muted-foreground">
+                                        {responses.item_not_found}
+                                    </p>
+                                )}
                                 <Caption
                                     text={
                                         lesson.media &&

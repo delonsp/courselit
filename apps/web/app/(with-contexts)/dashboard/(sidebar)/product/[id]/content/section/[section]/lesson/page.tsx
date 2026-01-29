@@ -527,6 +527,7 @@ export default function LessonPage() {
                     <div className="space-y-2">
                         <MediaSelector
                             disabled={!lesson?.lessonId}
+                            access="public"
                             title=""
                             src={
                                 (lesson?.media && lesson?.media.thumbnail) || ""
@@ -628,8 +629,7 @@ export default function LessonPage() {
                     id: lesson?.lessonId,
                     media: media
                         ? Object.assign({}, media, {
-                              file:
-                                  media.access === "public" ? media.file : null,
+                              file: media.file || null,
                           })
                         : null,
                 },
