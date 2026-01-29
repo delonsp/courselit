@@ -286,6 +286,19 @@ export function CommunityForum({
                 .build();
             await fetch.exec();
         } catch (err) {
+            setPosts((prevPosts) =>
+                prevPosts.map((post) =>
+                    post.postId === postId
+                        ? {
+                              ...post,
+                              likesCount: post.hasLiked
+                                  ? post.likesCount - 1
+                                  : post.likesCount + 1,
+                              hasLiked: !post.hasLiked,
+                          }
+                        : post,
+                ),
+            );
             console.error(err.message);
             toast({
                 title: TOAST_TITLE_ERROR,
@@ -321,6 +334,13 @@ export function CommunityForum({
                 .build();
             await fetch.exec();
         } catch (err) {
+            setPosts((prevPosts) =>
+                prevPosts.map((post) =>
+                    post.postId === postId
+                        ? { ...post, pinned: !post.pinned }
+                        : post,
+                ),
+            );
             console.error(err.message);
             toast({
                 title: TOAST_TITLE_ERROR,
