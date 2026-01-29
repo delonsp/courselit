@@ -1,5 +1,6 @@
 "use client";
 
+import { sanitizeText } from "@ui-lib/sanitize";
 import { useState, useEffect, useRef, useContext, useCallback } from "react";
 import { CreatePostDialog } from "./create-post-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -1240,7 +1241,9 @@ export function CommunityForum({
                                                     </p>
                                                     <p className="text-sm mb-4 whitespace-pre-wrap">
                                                         {truncate(
-                                                            post.content,
+                                                            sanitizeText(
+                                                                post.content,
+                                                            ),
                                                             500,
                                                         )}
                                                     </p>
@@ -1426,7 +1429,9 @@ export function CommunityForum({
                                                         {post.title}
                                                     </p>
                                                     <p className="text-sm mb-4 whitespace-pre-wrap">
-                                                        {post.content}
+                                                        {sanitizeText(
+                                                            post.content,
+                                                        )}
                                                     </p>
                                                 </div>
                                                 {post.media && (
