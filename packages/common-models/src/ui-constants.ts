@@ -69,3 +69,25 @@ export const YOUTUBE_REGEX =
 // Also matches: https://player.mediadelivery.net/...
 export const BUNNY_EMBED_REGEX =
     /^https?:\/\/(iframe|player)\.mediadelivery\.net\/.*/;
+
+// Allowlist of safe embed URL domains
+export const EMBED_ALLOWED_DOMAINS = [
+    "mediadelivery.net",
+    "youtube.com",
+    "youtu.be",
+    "vimeo.com",
+    "player.vimeo.com",
+];
+
+export const isEmbedUrlAllowed = (url: string): boolean => {
+    try {
+        const parsed = new URL(url);
+        return EMBED_ALLOWED_DOMAINS.some(
+            (domain) =>
+                parsed.hostname === domain ||
+                parsed.hostname.endsWith(`.${domain}`),
+        );
+    } catch {
+        return false;
+    }
+};

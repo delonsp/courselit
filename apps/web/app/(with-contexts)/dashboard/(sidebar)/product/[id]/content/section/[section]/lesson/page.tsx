@@ -65,6 +65,7 @@ import {
 import { FetchBuilder } from "@courselit/utils";
 import { QuizBuilder } from "@components/admin/products/quiz-builder";
 import { isTextEditorNonEmpty, truncate } from "@ui-lib/utils";
+import { isEmbedUrlAllowed } from "@ui-lib/embed-url-validator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@components/ui/separator";
 
@@ -89,6 +90,9 @@ export default function LessonPage() {
     const sectionId = params.section as string;
     const isEditing = !!lessonId;
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isEmbedOverrideDialogOpen, setIsEmbedOverrideDialogOpen] =
+        useState(false);
+    const [embedUrlOverridden, setEmbedUrlOverridden] = useState(false);
     const { toast } = useToast();
     const [errors, setErrors] = useState<Partial<Record<keyof Lesson, string>>>(
         {},
@@ -237,10 +241,10 @@ export default function LessonPage() {
                             <Input
                                 placeholder="e.g. https://iframe.mediadelivery.net/embed/..."
                                 value={content.value}
-                                onChange={(e) =>
-                                    // updateLesson({ content: { value: e.target.value } })
-                                    setContent({ value: e.target.value })
-                                }
+                                onChange={(e) => {
+                                    setContent({ value: e.target.value });
+                                    setEmbedUrlOverridden(false);
+                                }}
                                 className={
                                     errors.content ? "border-red-500" : ""
                                 }
@@ -794,6 +798,12 @@ export default function LessonPage() {
             case Constants.LessonType.EMBED:
                 if (!content.value.trim()) {
                     newErrors.content = "Please enter a video embed URL.";
+                } else if (
+                    !isEmbedUrlAllowed(content.value.trim()) &&
+                    !embedUrlOverridden
+                ) {
+                    newErrors.content =
+                        "URL not in allowlist. Only Bunny.net, YouTube, and Vimeo URLs are allowed.";
                 }
                 break;
             case Constants.LessonType.QUIZ:
@@ -840,6 +850,15 @@ export default function LessonPage() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateLesson()) {
+            // If embed URL failed allowlist and not yet overridden, show override dialog
+            if (
+                lesson.type === Constants.LessonType.EMBED &&
+                content.value.trim() &&
+                !isEmbedUrlAllowed(content.value.trim()) &&
+                !embedUrlOverridden
+            ) {
+                setIsEmbedOverrideDialogOpen(true);
+            }
             return;
         }
 
@@ -1231,6 +1250,41 @@ export default function LessonPage() {
                             </div>
                         </div>
                     </form>
+                    <Dialog
+                        open={isEmbedOverrideDialogOpen}
+                        onOpenChange={setIsEmbedOverrideDialogOpen}
+                    >
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>URL not in allowlist</DialogTitle>
+                                <DialogDescription>
+                                    The embed URL &quot;{content.value}&quot; is
+                                    not from a recognized domain (Bunny.net,
+                                    YouTube, Vimeo). Are you sure you want to
+                                    use this URL?
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                        setIsEmbedOverrideDialogOpen(false)
+                                    }
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setEmbedUrlOverridden(true);
+                                        setIsEmbedOverrideDialogOpen(false);
+                                        setErrors({});
+                                    }}
+                                >
+                                    Use Anyway
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                     {[
                         Constants.LessonType.VIDEO,
                         Constants.LessonType.AUDIO,
