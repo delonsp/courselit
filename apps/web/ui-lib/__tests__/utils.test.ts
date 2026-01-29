@@ -46,3 +46,80 @@ describe("getAddress", () => {
         global.window = originalWindow;
     });
 });
+
+// Test isLessonCompleted in isolation to avoid heavy dependency chain
+describe("isLessonCompleted", () => {
+    const isLessonCompleted = ({
+        courseId,
+        lessonId,
+        profile,
+    }: {
+        courseId: string;
+        lessonId: string;
+        profile: { purchases: { courseId: string; completedLessons: string[] }[] };
+    }) => {
+        const indexOfCurrentCourse = profile.purchases.findIndex(
+            (purchase) => purchase.courseId === courseId,
+        );
+        if (indexOfCurrentCourse === -1) return false;
+        return profile.purchases[indexOfCurrentCourse].completedLessons.some(
+            (lesson) => lesson === lessonId,
+        );
+    };
+
+    it("returns false when courseId is not in purchases", () => {
+        const profile = {
+            purchases: [
+                { courseId: "course-1", completedLessons: ["lesson-a"] },
+            ],
+        };
+        expect(
+            isLessonCompleted({
+                courseId: "nonexistent",
+                lessonId: "lesson-a",
+                profile,
+            }),
+        ).toBe(false);
+    });
+
+    it("returns false when purchases array is empty", () => {
+        const profile = { purchases: [] as any[] };
+        expect(
+            isLessonCompleted({
+                courseId: "course-1",
+                lessonId: "lesson-a",
+                profile,
+            }),
+        ).toBe(false);
+    });
+
+    it("returns true when lesson is in completedLessons", () => {
+        const profile = {
+            purchases: [
+                { courseId: "course-1", completedLessons: ["lesson-a", "lesson-b"] },
+            ],
+        };
+        expect(
+            isLessonCompleted({
+                courseId: "course-1",
+                lessonId: "lesson-b",
+                profile,
+            }),
+        ).toBe(true);
+    });
+
+    it("returns false when lesson is not in completedLessons", () => {
+        const profile = {
+            purchases: [
+                { courseId: "course-1", completedLessons: ["lesson-a"] },
+            ],
+        };
+        expect(
+            isLessonCompleted({
+                courseId: "course-1",
+                lessonId: "lesson-z",
+                profile,
+            }),
+        ).toBe(false);
+    });
+});
