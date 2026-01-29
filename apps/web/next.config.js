@@ -2,12 +2,26 @@
 
 const { version } = require("./package.json");
 
+const s3Host = process.env.S3_HOST || process.env.MINIO_HOST;
+
 const remotePatterns = [
     {
         protocol: "https",
         hostname: "**",
     },
 ];
+
+remotePatterns.push({
+    protocol: "https",
+    hostname: "s3.drsolution.online",
+});
+
+if (s3Host && s3Host !== "s3.drsolution.online") {
+    remotePatterns.push({
+        protocol: "https",
+        hostname: s3Host,
+    });
+}
 
 const nextConfig = {
     output: "standalone",
