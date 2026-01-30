@@ -291,12 +291,32 @@ export const LessonViewer = ({
                             lesson.type && (
                             <div>
                                 {lesson.media?.file ? (
-                                    <iframe
-                                        frameBorder="0"
-                                        width="100%"
-                                        height="500"
-                                        src={`${lesson.media.file}#view=fit`}
-                                    ></iframe>
+                                    <>
+                                        <iframe
+                                            frameBorder="0"
+                                            width="100%"
+                                            style={{
+                                                height: "calc(100vh - 200px)",
+                                                minHeight: "600px",
+                                            }}
+                                            src={`${lesson.media.file}#view=FitH&navpanes=0`}
+                                        ></iframe>
+                                        <div className="mt-3 flex items-center gap-3">
+                                            <a
+                                                href={lesson.media.file}
+                                                download={
+                                                    lesson.media
+                                                        .originalFileName ||
+                                                    "document.pdf"
+                                                }
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                                            >
+                                                Baixar PDF
+                                            </a>
+                                        </div>
+                                    </>
                                 ) : (
                                     <p className="text-muted-foreground">
                                         {responses.item_not_found}
