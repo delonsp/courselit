@@ -147,13 +147,13 @@ function getSidebarItems({
         ])
     ) {
         navMainItems.push({
-            title: "Overview",
+            title: "Visão Geral",
             url: "/dashboard/overview",
             icon: Target,
             isActive: path === "/dashboard/overview",
         });
         navMainItems.push({
-            title: "Products",
+            title: "Produtos",
             url: "/dashboard/products",
             icon: Box,
             isActive:
@@ -164,7 +164,7 @@ function getSidebarItems({
     }
     if (checkPermission(profile.permissions!, [permissions.manageCommunity])) {
         navMainItems.push({
-            title: "Communities",
+            title: "Comunidades",
             beta: true,
             url: "/dashboard/communities",
             icon: MessageCircleHeart,
@@ -202,12 +202,12 @@ function getSidebarItems({
             isActive: path?.startsWith("/dashboard/users"),
             items: [
                 {
-                    title: "All users",
+                    title: "Todos os usuários",
                     url: "/dashboard/users",
                     isActive: path === "/dashboard/users",
                 },
                 {
-                    title: "Tags",
+                    title: "Marcadores",
                     url: "/dashboard/users/tags",
                     isActive: path === "/dashboard/users/tags",
                 },
@@ -223,14 +223,14 @@ function getSidebarItems({
                 path?.startsWith("/dashboard/mail"),
             items: [
                 {
-                    title: "Broadcasts",
+                    title: "Envios em massa",
                     url: "/dashboard/mails?tab=Broadcasts",
                     isActive:
                         `${path}?tab=${tab}` ===
                         "/dashboard/mails?tab=Broadcasts",
                 },
                 {
-                    title: "Sequences",
+                    title: "Sequências",
                     url: "/dashboard/mails?tab=Sequences",
                     isActive:
                         `${path}?tab=${tab}` ===
@@ -242,32 +242,32 @@ function getSidebarItems({
     if (profile.permissions!.includes(permissions.manageSettings)) {
         const items = [
             {
-                title: "Branding",
+                title: "Marca",
                 url: "/dashboard/settings?tab=Branding",
                 isActive:
                     `${path}?tab=${tab}` === "/dashboard/settings?tab=Branding",
             },
             {
-                title: "Payment",
+                title: "Pagamento",
                 url: "/dashboard/settings?tab=Payment",
                 isActive:
                     `${path}?tab=${tab}` === "/dashboard/settings?tab=Payment",
             },
             {
-                title: "Mails",
+                title: "E-mails",
                 url: "/dashboard/settings?tab=Mails",
                 isActive:
                     `${path}?tab=${tab}` === "/dashboard/settings?tab=Mails",
             },
             {
-                title: "Code injection",
+                title: "Injeção de código",
                 url: "/dashboard/settings?tab=Code%20Injection",
                 isActive:
                     `${path}?tab=${tab}` ===
                     "/dashboard/settings?tab=Code Injection",
             },
             {
-                title: "API Keys",
+                title: "Chaves de API",
                 url: "/dashboard/settings?tab=API%20Keys",
                 isActive:
                     `${path}?tab=${tab}` === "/dashboard/settings?tab=API Keys",
@@ -306,7 +306,7 @@ function getSidebarItems({
             });
         }
         navSecondaryItems.push({
-            title: "Support",
+            title: "Suporte",
             url: "/dashboard/support",
             icon: <LifeBuoy />,
             isActive: path === "/dashboard/support",

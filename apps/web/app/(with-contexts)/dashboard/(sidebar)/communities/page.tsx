@@ -53,7 +53,7 @@ export default function Page() {
                 links={[
                     {
                         href: "https://docs.courselit.app/en/communities/introduction/",
-                        text: "Create a community",
+                        text: "Criar uma comunidade",
                     },
                 ]}
             />

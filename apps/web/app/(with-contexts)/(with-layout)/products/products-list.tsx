@@ -46,9 +46,9 @@ export function ProductsList({
         return (
             <div className="flex flex-col gap-4 items-center justify-center py-12 text-center">
                 <BookOpen className="w-12 h-12 text-muted-foreground" />
-                <Subheader1 theme={theme}>This page is empty.</Subheader1>
+                <Subheader1 theme={theme}>Esta página está vazia.</Subheader1>
                 <Button size="sm" theme={theme} onClick={() => onPageChange(1)}>
-                    Go to first page
+                    Ir para a primeira página
                 </Button>
             </div>
         );

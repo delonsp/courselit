@@ -93,7 +93,7 @@ export default function DashboardPage() {
         );
         toast({
             title: TOAST_TITLE_SUCCESS,
-            description: "Product URL copied to clipboard!",
+            description: "URL do produto copiada!",
         });
     };
 
@@ -112,7 +112,7 @@ export default function DashboardPage() {
                         href={`/dashboard/product/${productId}/manage#publish`}
                         className="underline"
                     >
-                        Manage
+                        Gerenciar
                     </Link>
                 </div>
             )}
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                                 <Skeleton className="h-9 w-64" />
                             )}
                             <TooltipCL
-                                title="Share product"
+                                title="Compartilhar produto"
                                 className="font-normal!"
                             >
                                 <Button
@@ -150,11 +150,11 @@ export default function DashboardPage() {
                                     </Badge>
                                     <Badge variant="outline">
                                         {product.published
-                                            ? "Published"
-                                            : "Draft"}
+                                            ? "Publicado"
+                                            : "Rascunho"}
                                     </Badge>
                                     <span className="text-sm text-muted-foreground">
-                                        Last updated{" "}
+                                        Atualizado{" "}
                                         {product.updatedAt
                                             ? formatDistanceToNow(
                                                   new Date(+product.updatedAt),
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                     <div className="flex flex-wrap gap-2 items-center">
                         <Select value={timeRange} onValueChange={setTimeRange}>
                             <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="Select time range" />
+                                <SelectValue placeholder="Selecionar período" />
                             </SelectTrigger>
                             <SelectContent>
                                 {TIME_RANGES.map((range) => (
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline">
-                                    Actions
+                                    Ações
                                     <ChevronDown className="ml-2 h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -242,7 +242,7 @@ export default function DashboardPage() {
                                         href={`/dashboard/product/${productId}/manage`}
                                     >
                                         <Settings className="mr-2 h-4 w-4" />
-                                        Manage
+                                        Gerenciar
                                     </Link>
                                 </DropdownMenuItem>
                                 {/* <DropdownMenuSeparator /> */}
@@ -311,7 +311,7 @@ export default function DashboardPage() {
                 {" "}
                 {/* Updated grid columns */}
                 <MetricCard
-                    title="Sales"
+                    title="Vendas"
                     icon={
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     }
@@ -321,7 +321,7 @@ export default function DashboardPage() {
                 />
                 <Link href={`/dashboard/product/${productId}/customers`}>
                     <MetricCard
-                        title="Customers"
+                        title="Clientes"
                         icon={
                             <Users className="h-4 w-4 text-muted-foreground" />
                         }
@@ -333,7 +333,7 @@ export default function DashboardPage() {
                 {product?.type?.toLowerCase() === "course" ? (
                     <>
                         <MetricCard
-                            title="People who completed the course"
+                            title="Pessoas que concluíram o curso"
                             icon={
                                 <GraduationCap className="h-4 w-4 text-muted-foreground" />
                             }
@@ -424,11 +424,11 @@ export default function DashboardPage() {
                 links={[
                     {
                         href: `https://docs.courselit.app/en/courses/add-content/`,
-                        text: "Add content to a product",
+                        text: "Adicionar conteúdo a um produto",
                     },
                     {
                         href: `https://docs.courselit.app/en/courses/add-content/`,
-                        text: "Understanding product dashboard",
+                        text: "Entendendo o painel do produto",
                     },
                 ]}
             />

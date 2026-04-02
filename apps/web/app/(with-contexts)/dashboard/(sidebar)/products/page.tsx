@@ -95,8 +95,8 @@ function ProductCard({ product }: { product: Course }) {
                                 <TooltipContent>
                                     {product.privacy?.toLowerCase() ===
                                     Constants.ProductAccessType.PUBLIC
-                                        ? "Public"
-                                        : "Hidden"}
+                                        ? "Público"
+                                        : "Oculto"}
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -110,7 +110,9 @@ function ProductCard({ product }: { product: Course }) {
                                     )}
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    {product.published ? "Published" : "Draft"}
+                                    {product.published
+                                        ? "Publicado"
+                                        : "Rascunho"}
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -124,13 +126,13 @@ function ProductCard({ product }: { product: Course }) {
                                     siteinfo.currencyISOCode || "USD",
                                 )}{" "}
                             </span>
-                            {product.sales.toLocaleString()} sales
+                            {product.sales.toLocaleString()} vendas
                         </span>
                     </div>
                     <div className="flex items-center text-muted-foreground">
                         <Users className="h-4 w-4 mr-2" />
                         <span>
-                            {product.customers.toLocaleString()} customers
+                            {product.customers.toLocaleString()} clientes
                         </span>
                     </div>
                 </div>
@@ -216,10 +218,10 @@ export default function Page() {
                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                     <Select value={filter} onValueChange={handleFilterChange}>
                         <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by status" />
+                            <SelectValue placeholder="Filtrar por tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="all">Todos</SelectItem>
                             {[
                                 Constants.CourseType.COURSE,
                                 Constants.CourseType.DOWNLOAD,
@@ -261,11 +263,11 @@ export default function Page() {
                 links={[
                     {
                         href: "https://docs.courselit.app/en/courses/introduction/",
-                        text: "Create a course",
+                        text: "Criar um curso",
                     },
                     {
                         href: "https://docs.courselit.app/en/downloads/introduction/",
-                        text: "Create a digital download",
+                        text: "Criar um download digital",
                     },
                 ]}
             />

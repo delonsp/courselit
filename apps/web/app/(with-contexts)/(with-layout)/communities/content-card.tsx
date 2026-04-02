@@ -58,7 +58,7 @@ export function CommunityContentCard({
                             <Users className="h-4 w-4 mr-2" />
                             <Text2 theme={theme}>
                                 {community.membersCount.toLocaleString()}{" "}
-                                members
+                                membros
                             </Text2>
                         </div>
                         {!publicView && (
@@ -73,8 +73,8 @@ export function CommunityContentCard({
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         {community.enabled
-                                            ? "Enabled"
-                                            : "Draft"}
+                                            ? "Ativo"
+                                            : "Rascunho"}
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>

@@ -112,19 +112,19 @@ export default function Page() {
             </div>
             <p className="text-muted-foreground mb-4">
                 {type === Constants.MembershipEntityType.COURSE
-                    ? "You haven't enrolled in any products yet."
-                    : "You haven't joined any communities yet."}{" "}
+                    ? "Você ainda não se inscreveu em nenhum produto."
+                    : "Você ainda não participou de nenhuma comunidade."}{" "}
             </p>
             {type === Constants.MembershipEntityType.COURSE ? (
                 <Link href="/products" className="text-primary">
                     <Button size="sm" theme={theme.theme}>
-                        Browse products
+                        Ver produtos
                     </Button>
                 </Link>
             ) : (
                 <Link href="/communities" className="text-primary">
                     <Button size="sm" theme={theme.theme}>
-                        Browse communities
+                        Ver comunidades
                     </Button>
                 </Link>
             )}
@@ -134,10 +134,12 @@ export default function Page() {
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>
             <div className="space-y-12">
-                <h1 className="text-4xl font-bold">My Content</h1>
+                <h1 className="text-4xl font-bold">Meu Conteúdo</h1>
 
                 <section>
-                    <h2 className="text-xl font-semibold mb-6">My Products</h2>
+                    <h2 className="text-xl font-semibold mb-6">
+                        Meus Produtos
+                    </h2>
                     {loading ? (
                         <SkeletonGrid />
                     ) : courses.length > 0 ? (
@@ -152,7 +154,7 @@ export default function Page() {
 
                 <section>
                     <h2 className="text-xl font-semibold mb-6">
-                        My Communities
+                        Minhas Comunidades
                     </h2>
                     {loading ? (
                         <SkeletonGrid />

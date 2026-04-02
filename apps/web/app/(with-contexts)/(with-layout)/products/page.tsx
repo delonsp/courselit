@@ -22,7 +22,7 @@ export default function CoursesPage() {
     return (
         <Section theme={theme.theme}>
             <div className="flex flex-col gap-4 min-h-[80vh]">
-                <Header1 theme={theme.theme}>Products</Header1>
+                <Header1 theme={theme.theme}>Produtos</Header1>
                 <ProductsList
                     theme={theme.theme}
                     page={page}

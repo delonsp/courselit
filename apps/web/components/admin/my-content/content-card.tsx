@@ -52,7 +52,7 @@ export function MyContentCard({ item }: ContentCardProps) {
                         {entity.certificateId && (
                             <p className="flex items-center text-sm text-muted-foreground">
                                 <BadgeCheck className="h-4 w-4 mr-1" />
-                                Certificate
+                                Certificado
                             </p>
                         )}
                     </div>
@@ -65,7 +65,7 @@ export function MyContentCard({ item }: ContentCardProps) {
                     <div className="space-y-2 mt-4">
                         <ProgressBar value={progress} />
                         <p className="text-sm text-muted-foreground flex justify-between">
-                            <span>{`${entity.completedLessonsCount} of ${entity.totalLessons} lessons completed`}</span>
+                            <span>{`${entity.completedLessonsCount} de ${entity.totalLessons} aulas concluídas`}</span>
                             <span>{`${Math.round(progress)}%`}</span>
                         </p>
                     </div>

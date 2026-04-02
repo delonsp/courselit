@@ -24,7 +24,7 @@ export default function BlogsPage() {
         <Section theme={theme.theme}>
             <div className="flex flex-col gap-4">
                 <Header1 theme={theme.theme}>{PAGE_HEADER_ALL_POSTS}</Header1>
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense fallback={<div>Carregando...</div>}>
                     <BlogsList page={page} onPageChange={handlePageChange} />
                 </Suspense>
             </div>

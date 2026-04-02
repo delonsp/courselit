@@ -33,10 +33,12 @@ export function CommunitiesList({
         return (
             <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mb-4" />
-                <Header3 theme={theme.theme}>No Communities Found</Header3>
+                <Header3 theme={theme.theme}>
+                    Nenhuma Comunidade Encontrada
+                </Header3>
                 <Text2 theme={theme.theme}>
-                    {publicView ? "The team " : "You have "} not added any
-                    communities yet.
+                    {publicView ? "A equipe ainda " : "Você ainda "} não
+                    adicionou nenhuma comunidade.
                 </Text2>
             </div>
         );
@@ -46,13 +48,13 @@ export function CommunitiesList({
         return (
             <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mb-4" />
-                <Text2 theme={theme.theme}>This page is empty.</Text2>
+                <Text2 theme={theme.theme}>Esta página está vazia.</Text2>
                 <Button
                     variant="outline"
                     theme={theme.theme}
                     onClick={() => onPageChange(1)}
                 >
-                    Go to first page
+                    Ir para a primeira página
                 </Button>
             </div>
         );
