@@ -1,6 +1,6 @@
 import { GraphQLBoolean, GraphQLEnumType, GraphQLString } from "graphql";
 import GQLContext from "../../models/GQLContext";
-import { getActivities } from "./logic";
+import { getActivities, getActiveSubscribersCount } from "./logic";
 import types from "./types";
 import constants from "../../config/constants";
 const { activityTypes, analyticsDurations } = constants;
@@ -72,6 +72,19 @@ const queries = {
             },
             ctx: GQLContext,
         ) => getActivities({ ctx, type, duration, growth, points, entityId }),
+    },
+    getActiveSubscribersCount: {
+        type: types.activity,
+        args: {
+            duration: {
+                type: durationType,
+            },
+        },
+        resolve: (
+            _: any,
+            { duration }: { duration: (typeof analyticsDurations)[number] },
+            ctx: GQLContext,
+        ) => getActiveSubscribersCount({ ctx, duration }),
     },
 };
 

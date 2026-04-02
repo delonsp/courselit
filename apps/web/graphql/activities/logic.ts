@@ -5,8 +5,9 @@ import constants from "../../config/constants";
 import { checkPermission } from "@courselit/utils";
 const { permissions, activityTypes, analyticsDurations } = constants;
 import ActivityModel, { Activity } from "../../models/Activity";
+import MembershipModel from "../../models/Membership";
 import { calculatePastDate } from "./helpers";
-import { ActivityType } from "@courselit/common-models";
+import { ActivityType, Constants } from "@courselit/common-models";
 
 interface Activities {
     count: number;
@@ -118,4 +119,54 @@ export const getActivities = async ({
     }
 
     return result;
+};
+
+export const getActiveSubscribersCount = async ({
+    ctx,
+    duration,
+}: {
+    ctx: GQLContext;
+    duration: (typeof analyticsDurations)[number];
+}): Promise<Activities> => {
+    checkIfAuthenticated(ctx);
+    if (!checkPermission(ctx.user.permissions, [permissions.manageSettings])) {
+        throw new Error(responses.action_not_allowed);
+    }
+
+    const startFromDate = calculatePastDate(duration, ctx.subdomain);
+    const extendedStartDate = calculatePastDate(
+        duration,
+        ctx.subdomain,
+        new Date(startFromDate.getTime() - 1),
+    );
+
+    // Count unique users with active memberships (course type only)
+    const currentUsers = await MembershipModel.distinct("userId", {
+        domain: ctx.subdomain._id,
+        status: Constants.MembershipStatus.ACTIVE,
+        entityType: Constants.MembershipEntityType.COURSE,
+        createdAt: { $gte: startFromDate },
+    });
+
+    const previousUsers = await MembershipModel.distinct("userId", {
+        domain: ctx.subdomain._id,
+        status: Constants.MembershipStatus.ACTIVE,
+        entityType: Constants.MembershipEntityType.COURSE,
+        createdAt: { $gte: extendedStartDate, $lt: startFromDate },
+    });
+
+    const count = currentUsers.length;
+    const previousCount = previousUsers.length;
+    const growth =
+        previousCount === 0 && count > 0
+            ? 100
+            : previousCount
+              ? Number(
+                    (((count - previousCount) / previousCount) * 100).toFixed(
+                        2,
+                    ),
+                )
+              : 0;
+
+    return { count, growth };
 };

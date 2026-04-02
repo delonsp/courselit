@@ -10,8 +10,11 @@ import {
 } from "@ui-config/strings";
 import { ADMIN_PERMISSIONS, TIME_RANGES } from "@ui-config/constants";
 import { useActivities } from "@/hooks/use-activities";
+import { useActiveSubscribers } from "@/hooks/use-active-subscribers";
 import dynamic from "next/dynamic";
 import DashboardContent from "@components/admin/dashboard-content";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 const LoadingScreen = dynamic(() => import("@components/admin/loading-screen"));
 const MetricCard = dynamic(() => import("../product/[id]/metric-card"));
 const SalesCard = dynamic(() => import("./sales-card"));
@@ -42,9 +45,6 @@ const SelectValue = dynamic(() =>
 );
 
 // Dynamically import icons
-const DollarSign = dynamic(() =>
-    import("lucide-react").then((mod) => ({ default: mod.DollarSign })),
-);
 const UserPlus = dynamic(() =>
     import("lucide-react").then((mod) => ({ default: mod.UserPlus })),
 );
@@ -58,13 +58,15 @@ const breadcrumbs = [{ label: OVERVIEW_HEADER, href: "#" }];
 
 export default function Page() {
     const { profile } = useContext(ProfileContext);
-    const [timeRange, setTimeRange] = useState("7d");
+    const [timeRange, setTimeRange] = useState("lifetime");
     const { data: salesData, loading: salesLoading } = useActivities(
         Constants.ActivityType.PURCHASED,
         timeRange,
         undefined,
         true,
     );
+    const { data: subscribersData, loading: subscribersLoading } =
+        useActiveSubscribers(timeRange);
 
     if (!profile || !profile.userId) {
         return <LoadingScreen />;
@@ -99,19 +101,36 @@ export default function Page() {
                 </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-                <MetricCard
-                    title="Vendas"
-                    icon={
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    }
-                    type={Constants.ActivityType.PURCHASED}
-                    duration={timeRange}
-                />
-                <MetricCard
-                    title="Clientes"
-                    icon={
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                            Assinantes Ativos
+                        </CardTitle>
                         <UserPlus className="h-4 w-4 text-muted-foreground" />
-                    }
+                    </CardHeader>
+                    <CardContent>
+                        {subscribersLoading ? (
+                            <>
+                                <Skeleton className="h-7 w-3/4 mb-1" />
+                                <Skeleton className="h-4 w-1/2" />
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">
+                                    {subscribersData.count.toLocaleString()}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {subscribersData.growth > 0 ? "+" : ""}
+                                    {subscribersData.growth}% em relação ao
+                                    período anterior
+                                </p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+                <MetricCard
+                    title="Total de Alunos"
+                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
                     type={Constants.ActivityType.ENROLLED}
                     duration={timeRange}
                 />
@@ -122,7 +141,7 @@ export default function Page() {
                     duration={timeRange}
                 />
                 <MetricCard
-                    title="Inscritos"
+                    title="Inscritos na newsletter"
                     icon={<Mail className="h-4 w-4 text-muted-foreground" />}
                     type={Constants.ActivityType.NEWSLETTER_SUBSCRIBED}
                     duration={timeRange}

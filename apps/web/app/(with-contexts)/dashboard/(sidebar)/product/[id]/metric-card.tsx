@@ -38,7 +38,7 @@ const MetricCard = ({
                         </div>
                         <p className="text-xs text-muted-foreground">
                             {data.growth > 0 ? "+" : ""}
-                            {data.growth}% from previous period
+                            {data.growth}% em relação ao período anterior
                         </p>
                     </>
                 )}

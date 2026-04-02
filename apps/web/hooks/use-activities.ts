@@ -81,7 +81,7 @@ export function useActivities(
                                         const currentYear =
                                             new Date().getFullYear();
                                         return dateObj.toLocaleDateString(
-                                            "en-US",
+                                            "pt-BR",
                                             {
                                                 day: "2-digit",
                                                 month: "short",
