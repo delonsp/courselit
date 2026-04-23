@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20.20.2-alpine AS base
 
 # Install pnpm in base image
 RUN corepack enable pnpm

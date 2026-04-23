@@ -18,57 +18,68 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             name: "Email",
             credentials: {},
             async authorize(credentials, req) {
-                const domain = await DomainModel.findOne<Domain>({
-                    name: req.headers.get("domain"),
-                });
-                if (!domain) {
-                    throw new Error("Domain not found");
-                }
-                const parsedCredentials = z
-                    .object({
-                        email: z.string().email(),
-                        code: z.string().min(6),
-                    })
-                    .safeParse(credentials);
-                if (!parsedCredentials.success) {
-                    return null;
-                }
-
-                const { email, code } = parsedCredentials.data;
-                const sanitizedEmail = email.toLowerCase();
-
-                const verificationToken =
-                    await VerificationToken.findOneAndDelete({
-                        email: sanitizedEmail,
-                        domain: domain.name,
-                        code: hashCode(+code),
-                        timestamp: { $gt: Date.now() },
+                try {
+                    const domain = await DomainModel.findOne<Domain>({
+                        name: req.headers.get("domain"),
                     });
-                if (!verificationToken) {
-                    error(`Invalid code`, {
-                        email: sanitizedEmail,
-                    });
-                    return null;
-                }
+                    if (!domain) {
+                        error("Auth: domain not found", {
+                            domainHeader: req.headers.get("domain"),
+                        });
+                        return null;
+                    }
+                    const parsedCredentials = z
+                        .object({
+                            email: z.string().email(),
+                            code: z.string().min(6),
+                        })
+                        .safeParse(credentials);
+                    if (!parsedCredentials.success) {
+                        return null;
+                    }
 
-                let user = await UserModel.findOne({
-                    domain: domain._id,
-                    email: sanitizedEmail,
-                });
-                if (user && user.invited) {
-                    user.invited = false;
-                    await user.save();
-                }
-                if (!user) {
-                    user = await createUser({
-                        domain,
+                    const { email, code } = parsedCredentials.data;
+                    const sanitizedEmail = email.toLowerCase();
+
+                    const verificationToken =
+                        await VerificationToken.findOneAndDelete({
+                            email: sanitizedEmail,
+                            domain: domain.name,
+                            code: hashCode(+code),
+                            timestamp: { $gt: Date.now() },
+                        });
+                    if (!verificationToken) {
+                        error(`Invalid code`, {
+                            email: sanitizedEmail,
+                        });
+                        return null;
+                    }
+
+                    let user = await UserModel.findOne({
+                        domain: domain._id,
                         email: sanitizedEmail,
                     });
-                }
-                if (!user.active) {
+                    if (user && user.invited) {
+                        user.invited = false;
+                        await user.save();
+                    }
+                    if (!user) {
+                        user = await createUser({
+                            domain,
+                            email: sanitizedEmail,
+                        });
+                    }
+                    if (!user.active) {
+                        return null;
+                    }
+                    return user;
+                } catch (err: any) {
+                    error("Auth: authorize() threw", {
+                        message: err?.message,
+                        stack: err?.stack,
+                    });
                     return null;
                 }
-                return user;
             },
         }),
     ],
