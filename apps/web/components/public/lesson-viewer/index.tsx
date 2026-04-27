@@ -341,7 +341,23 @@ export const LessonViewer = ({
                             LESSON_TYPE_EMBED,
                         ) === lesson.type &&
                             lesson.content && (
-                                <LessonEmbedViewer content={lesson.content} />
+                                <LessonEmbedViewer
+                                    content={lesson.content}
+                                    watermark={
+                                        /mediadelivery\.net|b-cdn\.net/.test(
+                                            (
+                                                lesson.content as {
+                                                    value: string;
+                                                }
+                                            ).value || "",
+                                        ) && profile?.email
+                                            ? {
+                                                  name: profile.name,
+                                                  email: profile.email,
+                                              }
+                                            : undefined
+                                    }
+                                />
                             )}
                         {String.prototype.toUpperCase.call(LESSON_TYPE_QUIZ) ===
                             lesson.type &&
