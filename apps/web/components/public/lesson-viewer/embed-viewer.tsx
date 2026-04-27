@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { UIConstants } from "@courselit/common-models";
 
 interface BunnyWatermark {
@@ -14,6 +14,15 @@ const WATERMARK_CORNERS: Array<React.CSSProperties> = [
 ];
 const WATERMARK_ROTATION_MS = 12000;
 
+export function isWatermarkTampered(el: HTMLElement | null): boolean {
+    if (!el || !el.isConnected) return true;
+    const style = el.style;
+    if (style.display === "none" || style.visibility === "hidden") return true;
+    const opacity = parseFloat(style.opacity || "0.35");
+    if (!isNaN(opacity) && opacity < 0.1) return true;
+    return false;
+}
+
 const BunnyEmbed = ({
     url,
     watermark,
@@ -22,6 +31,10 @@ const BunnyEmbed = ({
     watermark?: BunnyWatermark;
 }) => {
     const [cornerIndex, setCornerIndex] = useState(0);
+    const [tampered, setTampered] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement | null>(null);
+    const overlayRef = useRef<HTMLDivElement | null>(null);
+    const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
     useEffect(() => {
         if (!watermark) return;
@@ -31,11 +44,45 @@ const BunnyEmbed = ({
         return () => clearInterval(id);
     }, [watermark]);
 
+    useEffect(() => {
+        if (!watermark) return;
+        if (typeof MutationObserver === "undefined") return;
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+
+        const handleTamper = () => {
+            if (tampered) return;
+            try {
+                iframeRef.current?.contentWindow?.postMessage(
+                    { event: "pause" },
+                    "*",
+                );
+            } catch {
+                /* ignore cross-origin errors */
+            }
+            setTampered(true);
+        };
+
+        const observer = new MutationObserver(() => {
+            if (isWatermarkTampered(overlayRef.current)) {
+                handleTamper();
+            }
+        });
+        observer.observe(wrapper, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["style", "class", "hidden"],
+        });
+        return () => observer.disconnect();
+    }, [watermark, tampered]);
+
     const cornerStyle = WATERMARK_CORNERS[cornerIndex];
 
     return (
-        <div className="aspect-video relative">
+        <div ref={wrapperRef} className="aspect-video relative">
             <iframe
+                ref={iframeRef}
                 className="w-full h-full rounded-lg absolute inset-0"
                 src={url}
                 title="Video player"
@@ -45,6 +92,7 @@ const BunnyEmbed = ({
             />
             {watermark && (
                 <div
+                    ref={overlayRef}
                     data-testid="bunny-watermark"
                     aria-hidden="true"
                     style={{
@@ -65,6 +113,28 @@ const BunnyEmbed = ({
                     }}
                 >
                     {`${watermark.name ?? ""}\n${watermark.email}`}
+                </div>
+            )}
+            {tampered && (
+                <div
+                    data-testid="bunny-tamper-alert"
+                    role="alert"
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(0,0,0,0.85)",
+                        color: "white",
+                        fontSize: "18px",
+                        fontWeight: 600,
+                        textAlign: "center",
+                        padding: "16px",
+                        zIndex: 10,
+                    }}
+                >
+                    Sessão encerrada
                 </div>
             )}
         </div>
