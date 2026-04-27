@@ -1,10 +1,18 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { UIConstants } from "@courselit/common-models";
 
 interface BunnyWatermark {
     name?: string;
     email: string;
 }
+
+const WATERMARK_CORNERS: Array<React.CSSProperties> = [
+    { top: "8%", left: "8%", transform: "none" },
+    { top: "8%", right: "8%", transform: "none" },
+    { bottom: "8%", left: "8%", transform: "none" },
+    { bottom: "8%", right: "8%", transform: "none" },
+];
+const WATERMARK_ROTATION_MS = 12000;
 
 const BunnyEmbed = ({
     url,
@@ -13,6 +21,18 @@ const BunnyEmbed = ({
     url: string;
     watermark?: BunnyWatermark;
 }) => {
+    const [cornerIndex, setCornerIndex] = useState(0);
+
+    useEffect(() => {
+        if (!watermark) return;
+        const id = setInterval(() => {
+            setCornerIndex((i) => (i + Math.floor(Math.random() * 3) + 1) % 4);
+        }, WATERMARK_ROTATION_MS);
+        return () => clearInterval(id);
+    }, [watermark]);
+
+    const cornerStyle = WATERMARK_CORNERS[cornerIndex];
+
     return (
         <div className="aspect-video relative">
             <iframe
@@ -29,9 +49,7 @@ const BunnyEmbed = ({
                     aria-hidden="true"
                     style={{
                         position: "absolute",
-                        top: "8%",
-                        left: "50%",
-                        transform: "translateX(-50%)",
+                        ...cornerStyle,
                         pointerEvents: "none",
                         opacity: 0.35,
                         color: "white",
@@ -42,6 +60,8 @@ const BunnyEmbed = ({
                         textAlign: "center",
                         lineHeight: 1.2,
                         fontFamily: "monospace",
+                        transition:
+                            "top 1s ease, left 1s ease, right 1s ease, bottom 1s ease",
                     }}
                 >
                     {`${watermark.name ?? ""}\n${watermark.email}`}
