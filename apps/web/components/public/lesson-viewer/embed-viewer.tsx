@@ -23,6 +23,27 @@ export function isWatermarkTampered(el: HTMLElement | null): boolean {
     return false;
 }
 
+export function requestWrapperFullscreen(wrapper: HTMLElement | null): boolean {
+    if (!wrapper) return false;
+    const el = wrapper as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void> | void;
+        mozRequestFullScreen?: () => Promise<void> | void;
+        msRequestFullscreen?: () => Promise<void> | void;
+    };
+    const fn =
+        el.requestFullscreen ||
+        el.webkitRequestFullscreen ||
+        el.mozRequestFullScreen ||
+        el.msRequestFullscreen;
+    if (typeof fn !== "function") return false;
+    try {
+        fn.call(el);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 const BunnyEmbed = ({
     url,
     watermark,
@@ -114,6 +135,36 @@ const BunnyEmbed = ({
                 >
                     {`${watermark.name ?? ""}\n${watermark.email}`}
                 </div>
+            )}
+            {watermark && (
+                <button
+                    type="button"
+                    onClick={() => requestWrapperFullscreen(wrapperRef.current)}
+                    aria-label="Tela cheia"
+                    title="Tela cheia (mantém marca d'água)"
+                    data-testid="bunny-fullscreen-btn"
+                    style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        width: 28,
+                        height: 28,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(0,0,0,0.45)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                        opacity: 0.6,
+                        zIndex: 5,
+                        fontSize: 14,
+                        lineHeight: 1,
+                    }}
+                >
+                    ⛶
+                </button>
             )}
             {tampered && (
                 <div
