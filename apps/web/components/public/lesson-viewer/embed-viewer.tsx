@@ -45,6 +45,32 @@ export function shouldRenewToken(
     return expires - nowSeconds < bufferSeconds;
 }
 
+export interface PlayerJsMessage {
+    context: "player.js";
+    method: string;
+    value?: unknown;
+    listener?: string;
+}
+
+export function buildPlayerJsMessage(
+    method: string,
+    value?: unknown,
+    listener?: string,
+): PlayerJsMessage {
+    return { context: "player.js", method, value, listener };
+}
+
+export function extractPlayerJsTime(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (value && typeof value === "object") {
+        const seconds = (value as { seconds?: unknown }).seconds;
+        if (typeof seconds === "number" && Number.isFinite(seconds)) {
+            return seconds;
+        }
+    }
+    return null;
+}
+
 export function isWatermarkTampered(el: HTMLElement | null): boolean {
     if (!el || !el.isConnected) return true;
     const style = el.style;
@@ -57,15 +83,7 @@ export function isWatermarkTampered(el: HTMLElement | null): boolean {
 export function stopBunnyPlayer(iframe: HTMLIFrameElement | null): void {
     if (!iframe) return;
     try {
-        iframe.contentWindow?.postMessage(
-            {
-                context: "player.js",
-                method: "pause",
-                value: undefined,
-                listener: undefined,
-            },
-            "*",
-        );
+        iframe.contentWindow?.postMessage(buildPlayerJsMessage("pause"), "*");
     } catch {
         /* ignore cross-origin errors */
     }
@@ -115,6 +133,14 @@ const BunnyEmbed = ({
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const overlayRef = useRef<HTMLDivElement | null>(null);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
+    const currentTimeRef = useRef(0);
+    const isPlayingRef = useRef(false);
+    const timeupdateReceivedRef = useRef(false);
+    const pendingSeekRef = useRef<{
+        time: number;
+        wasPlaying: boolean;
+    } | null>(null);
+    const pendingPauseUrlRef = useRef<string | null>(null);
 
     useEffect(() => {
         const parsed = parseBunnyEmbedUrl(url);
@@ -167,39 +193,21 @@ const BunnyEmbed = ({
     }, [watermark]);
 
     useEffect(() => {
-        const expires = parseExpiresFromSignedUrl(signedUrl);
-        if (expires == null) return;
-        const parsed = parseBunnyEmbedUrl(url);
-        if (!parsed) return;
-
-        let cancelled = false;
-        let isPlaying = false;
-        let pendingUrl: string | null = null;
-        let renewing = false;
         const iframe = iframeRef.current;
+        if (!iframe) return;
 
         const subscribe = () => {
-            try {
-                iframe?.contentWindow?.postMessage(
-                    {
-                        context: "player.js",
-                        method: "addEventListener",
-                        value: "play",
-                        listener: "play",
-                    },
-                    "*",
-                );
-                iframe?.contentWindow?.postMessage(
-                    {
-                        context: "player.js",
-                        method: "addEventListener",
-                        value: "pause",
-                        listener: "pause",
-                    },
-                    "*",
-                );
-            } catch {
-                /* ignore cross-origin */
+            const cw = iframe.contentWindow;
+            if (!cw) return;
+            for (const evt of ["ready", "play", "pause", "timeupdate"]) {
+                try {
+                    cw.postMessage(
+                        buildPlayerJsMessage("addEventListener", evt, evt),
+                        "*",
+                    );
+                } catch {
+                    /* ignore cross-origin */
+                }
             }
         };
 
@@ -207,15 +215,59 @@ const BunnyEmbed = ({
             const data = ev.data;
             if (!data || typeof data !== "object") return;
             if (data.context !== "player.js") return;
-            if (data.event === "play") isPlaying = true;
+            if (data.event === "play") isPlayingRef.current = true;
             if (data.event === "pause") {
-                isPlaying = false;
-                if (pendingUrl) {
-                    setSignedUrl(pendingUrl);
-                    pendingUrl = null;
+                isPlayingRef.current = false;
+                if (pendingPauseUrlRef.current) {
+                    setSignedUrl(pendingPauseUrlRef.current);
+                    pendingPauseUrlRef.current = null;
+                }
+            }
+            if (data.event === "timeupdate") {
+                const t = extractPlayerJsTime(data.value);
+                if (t != null) {
+                    timeupdateReceivedRef.current = true;
+                    currentTimeRef.current = t;
+                }
+            }
+            if (data.event === "ready") {
+                const seek = pendingSeekRef.current;
+                const cw = iframeRef.current?.contentWindow;
+                if (seek && cw) {
+                    try {
+                        cw.postMessage(
+                            buildPlayerJsMessage("setCurrentTime", seek.time),
+                            "*",
+                        );
+                        if (seek.wasPlaying) {
+                            cw.postMessage(buildPlayerJsMessage("play"), "*");
+                        }
+                    } catch {
+                        /* ignore cross-origin */
+                    }
+                    pendingSeekRef.current = null;
                 }
             }
         };
+
+        window.addEventListener("message", onMessage);
+        iframe.addEventListener("load", subscribe);
+        subscribe();
+
+        return () => {
+            window.removeEventListener("message", onMessage);
+            iframe.removeEventListener("load", subscribe);
+        };
+    }, []);
+
+    useEffect(() => {
+        const expires = parseExpiresFromSignedUrl(signedUrl);
+        if (expires == null) return;
+        const parsed = parseBunnyEmbedUrl(url);
+        if (!parsed) return;
+
+        let cancelled = false;
+        let renewing = false;
 
         const fetchNewUrl = async () => {
             if (renewing) return;
@@ -232,8 +284,15 @@ const BunnyEmbed = ({
                 const newUrl =
                     data && typeof data.url === "string" ? data.url : null;
                 if (!newUrl || cancelled) return;
-                if (isPlaying) {
-                    pendingUrl = newUrl;
+
+                if (timeupdateReceivedRef.current) {
+                    pendingSeekRef.current = {
+                        time: currentTimeRef.current,
+                        wasPlaying: isPlayingRef.current,
+                    };
+                    setSignedUrl(newUrl);
+                } else if (isPlayingRef.current) {
+                    pendingPauseUrlRef.current = newUrl;
                 } else {
                     setSignedUrl(newUrl);
                 }
@@ -247,23 +306,16 @@ const BunnyEmbed = ({
         const checkId = setInterval(() => {
             const now = Math.floor(Date.now() / 1000);
             const currentExpires = parseExpiresFromSignedUrl(
-                pendingUrl ?? signedUrl,
+                pendingPauseUrlRef.current ?? signedUrl,
             );
             if (shouldRenewToken(currentExpires, now)) {
                 void fetchNewUrl();
             }
         }, TOKEN_RENEW_CHECK_INTERVAL_MS);
 
-        window.addEventListener("message", onMessage);
-        iframe?.addEventListener("load", subscribe);
-        // attempt subscription immediately in case iframe already loaded
-        subscribe();
-
         return () => {
             cancelled = true;
             clearInterval(checkId);
-            window.removeEventListener("message", onMessage);
-            iframe?.removeEventListener("load", subscribe);
         };
     }, [signedUrl, url, lessonId]);
 
