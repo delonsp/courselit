@@ -9,6 +9,28 @@ function isWatermarkTampered(el: HTMLElement | null): boolean {
     return false;
 }
 
+function stopBunnyPlayer(iframe: HTMLIFrameElement | null): void {
+    if (!iframe) return;
+    try {
+        iframe.contentWindow?.postMessage(
+            {
+                context: "player.js",
+                method: "pause",
+                value: undefined,
+                listener: undefined,
+            },
+            "*",
+        );
+    } catch {
+        /* ignore cross-origin errors */
+    }
+    try {
+        iframe.src = "";
+    } catch {
+        /* ignore */
+    }
+}
+
 describe("WM-04: watermark tamper detection", () => {
     test("returns true when element is null", () => {
         expect(isWatermarkTampered(null)).toBe(true);
@@ -50,6 +72,44 @@ describe("WM-04: watermark tamper detection", () => {
         document.body.appendChild(el);
         expect(isWatermarkTampered(el)).toBe(true);
         document.body.removeChild(el);
+    });
+
+    test("stopBunnyPlayer is a no-op when iframe is null", () => {
+        expect(() => stopBunnyPlayer(null)).not.toThrow();
+    });
+
+    test("stopBunnyPlayer posts player.js pause message and clears src", () => {
+        const iframe = document.createElement("iframe");
+        iframe.src = "https://iframe.mediadelivery.net/embed/123/abc";
+        document.body.appendChild(iframe);
+
+        const posted: any[] = [];
+        const win = iframe.contentWindow;
+        if (win) {
+            const original = win.postMessage.bind(win);
+            (win as any).postMessage = (msg: any, target: string) => {
+                posted.push({ msg, target });
+                try {
+                    original(msg, target);
+                } catch {
+                    /* jsdom cross-origin */
+                }
+            };
+        }
+
+        stopBunnyPlayer(iframe);
+
+        expect(posted.length).toBe(1);
+        expect(posted[0].msg).toEqual({
+            context: "player.js",
+            method: "pause",
+            value: undefined,
+            listener: undefined,
+        });
+        expect(posted[0].target).toBe("*");
+        expect(iframe.getAttribute("src")).toBe("");
+
+        document.body.removeChild(iframe);
     });
 
     test("MutationObserver fires when overlay is removed from parent", (done) => {

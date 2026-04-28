@@ -23,6 +23,28 @@ export function isWatermarkTampered(el: HTMLElement | null): boolean {
     return false;
 }
 
+export function stopBunnyPlayer(iframe: HTMLIFrameElement | null): void {
+    if (!iframe) return;
+    try {
+        iframe.contentWindow?.postMessage(
+            {
+                context: "player.js",
+                method: "pause",
+                value: undefined,
+                listener: undefined,
+            },
+            "*",
+        );
+    } catch {
+        /* ignore cross-origin errors */
+    }
+    try {
+        iframe.src = "";
+    } catch {
+        /* ignore */
+    }
+}
+
 export function requestWrapperFullscreen(wrapper: HTMLElement | null): boolean {
     if (!wrapper) return false;
     const el = wrapper as HTMLElement & {
@@ -73,14 +95,7 @@ const BunnyEmbed = ({
 
         const handleTamper = () => {
             if (tampered) return;
-            try {
-                iframeRef.current?.contentWindow?.postMessage(
-                    { event: "pause" },
-                    "*",
-                );
-            } catch {
-                /* ignore cross-origin errors */
-            }
+            stopBunnyPlayer(iframeRef.current);
             setTampered(true);
         };
 
