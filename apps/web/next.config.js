@@ -45,6 +45,28 @@ const nextConfig = {
             bodySizeLimit: "50mb",
         },
     },
+    async headers() {
+        const frameSources = [
+            "'self'",
+            "https://iframe.mediadelivery.net",
+            "https://video.bunnycdn.com",
+            "https://www.youtube.com",
+            "https://www.youtube-nocookie.com",
+            "https://youtube.com",
+            "https://player.vimeo.com",
+        ];
+        return [
+            {
+                source: "/:path*",
+                headers: [
+                    {
+                        key: "Content-Security-Policy",
+                        value: `frame-src ${frameSources.join(" ")};`,
+                    },
+                ],
+            },
+        ];
+    },
 };
 
 module.exports = nextConfig;
