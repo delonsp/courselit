@@ -139,6 +139,11 @@ const BunnyEmbed = ({
                         data && typeof data.url === "string" ? data.url : null,
                     );
                 } else {
+                    if (res.status === 401 || res.status === 403) {
+                        console.warn(
+                            `[bunny-sign] ${res.status} — falling back to unsigned URL`,
+                        );
+                    }
                     setSignedUrl(null);
                 }
             })
