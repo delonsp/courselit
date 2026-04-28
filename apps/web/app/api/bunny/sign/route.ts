@@ -5,6 +5,7 @@ import DomainModel, { Domain } from "@models/Domain";
 import LessonModel from "@models/Lesson";
 import { getLibraryKey, signBunnyEmbedUrl } from "@/lib/bunny/sign-url";
 import { canUserAccessVideoLesson } from "@/lib/bunny/authorize-video";
+import { logBunnySignEvent } from "@/lib/bunny/log-sign-event";
 
 const DEFAULT_TTL_SECONDS = 7200;
 
@@ -102,6 +103,17 @@ export async function POST(req: NextRequest) {
             { status: 500 },
         );
     }
+
+    logBunnySignEvent({
+        userId: String(user.userId ?? user._id),
+        videoId,
+        libraryId,
+        ip:
+            req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+            req.headers.get("x-real-ip") ||
+            null,
+        userAgent: req.headers.get("user-agent") || null,
+    });
 
     return Response.json({ url });
 }
