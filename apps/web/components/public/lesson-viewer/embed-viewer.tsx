@@ -25,6 +25,26 @@ export function parseBunnyEmbedUrl(
     return { libraryId: m[1], videoId: m[2] };
 }
 
+export const TOKEN_RENEW_BUFFER_SECONDS = 300;
+export const TOKEN_RENEW_CHECK_INTERVAL_MS = 30000;
+
+export function parseExpiresFromSignedUrl(url: string | null): number | null {
+    if (!url) return null;
+    const m = url.match(/[?&]expires=(\d+)/);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    return Number.isFinite(n) ? n : null;
+}
+
+export function shouldRenewToken(
+    expires: number | null,
+    nowSeconds: number,
+    bufferSeconds: number = TOKEN_RENEW_BUFFER_SECONDS,
+): boolean {
+    if (expires == null) return false;
+    return expires - nowSeconds < bufferSeconds;
+}
+
 export function isWatermarkTampered(el: HTMLElement | null): boolean {
     if (!el || !el.isConnected) return true;
     const style = el.style;
@@ -137,6 +157,106 @@ const BunnyEmbed = ({
         }, WATERMARK_ROTATION_MS);
         return () => clearInterval(id);
     }, [watermark]);
+
+    useEffect(() => {
+        const expires = parseExpiresFromSignedUrl(signedUrl);
+        if (expires == null) return;
+        const parsed = parseBunnyEmbedUrl(url);
+        if (!parsed) return;
+
+        let cancelled = false;
+        let isPlaying = false;
+        let pendingUrl: string | null = null;
+        let renewing = false;
+        const iframe = iframeRef.current;
+
+        const subscribe = () => {
+            try {
+                iframe?.contentWindow?.postMessage(
+                    {
+                        context: "player.js",
+                        method: "addEventListener",
+                        value: "play",
+                        listener: "play",
+                    },
+                    "*",
+                );
+                iframe?.contentWindow?.postMessage(
+                    {
+                        context: "player.js",
+                        method: "addEventListener",
+                        value: "pause",
+                        listener: "pause",
+                    },
+                    "*",
+                );
+            } catch {
+                /* ignore cross-origin */
+            }
+        };
+
+        const onMessage = (ev: MessageEvent) => {
+            const data = ev.data;
+            if (!data || typeof data !== "object") return;
+            if (data.context !== "player.js") return;
+            if (data.event === "play") isPlaying = true;
+            if (data.event === "pause") {
+                isPlaying = false;
+                if (pendingUrl) {
+                    setSignedUrl(pendingUrl);
+                    pendingUrl = null;
+                }
+            }
+        };
+
+        const fetchNewUrl = async () => {
+            if (renewing) return;
+            renewing = true;
+            try {
+                const res = await fetch("/api/bunny/sign", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(parsed),
+                });
+                if (cancelled || !res.ok) return;
+                const data = await res.json().catch(() => null);
+                const newUrl =
+                    data && typeof data.url === "string" ? data.url : null;
+                if (!newUrl || cancelled) return;
+                if (isPlaying) {
+                    pendingUrl = newUrl;
+                } else {
+                    setSignedUrl(newUrl);
+                }
+            } catch {
+                /* ignore */
+            } finally {
+                renewing = false;
+            }
+        };
+
+        const checkId = setInterval(() => {
+            const now = Math.floor(Date.now() / 1000);
+            const currentExpires = parseExpiresFromSignedUrl(
+                pendingUrl ?? signedUrl,
+            );
+            if (shouldRenewToken(currentExpires, now)) {
+                void fetchNewUrl();
+            }
+        }, TOKEN_RENEW_CHECK_INTERVAL_MS);
+
+        window.addEventListener("message", onMessage);
+        iframe?.addEventListener("load", subscribe);
+        // attempt subscription immediately in case iframe already loaded
+        subscribe();
+
+        return () => {
+            cancelled = true;
+            clearInterval(checkId);
+            window.removeEventListener("message", onMessage);
+            iframe?.removeEventListener("load", subscribe);
+        };
+    }, [signedUrl, url]);
 
     useEffect(() => {
         if (!watermark) return;
