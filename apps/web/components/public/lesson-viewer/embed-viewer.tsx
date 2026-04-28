@@ -14,6 +14,17 @@ const WATERMARK_CORNERS: Array<React.CSSProperties> = [
 ];
 const WATERMARK_ROTATION_MS = 12000;
 
+const BUNNY_EMBED_PATH_REGEX =
+    /^https?:\/\/(?:iframe|player)\.mediadelivery\.net\/embed\/(\d+)\/([A-Za-z0-9-]+)/;
+
+export function parseBunnyEmbedUrl(
+    url: string,
+): { libraryId: string; videoId: string } | null {
+    const m = url.match(BUNNY_EMBED_PATH_REGEX);
+    if (!m) return null;
+    return { libraryId: m[1], videoId: m[2] };
+}
+
 export function isWatermarkTampered(el: HTMLElement | null): boolean {
     if (!el || !el.isConnected) return true;
     const style = el.style;
@@ -77,9 +88,47 @@ const BunnyEmbed = ({
 }) => {
     const [cornerIndex, setCornerIndex] = useState(0);
     const [tampered, setTampered] = useState(false);
+    const [signedUrl, setSignedUrl] = useState<string | null>(null);
+    const [signingResolved, setSigningResolved] = useState(false);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const overlayRef = useRef<HTMLDivElement | null>(null);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+    useEffect(() => {
+        const parsed = parseBunnyEmbedUrl(url);
+        if (!parsed) {
+            setSignedUrl(null);
+            setSigningResolved(true);
+            return;
+        }
+        let cancelled = false;
+        setSigningResolved(false);
+        fetch("/api/bunny/sign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parsed),
+        })
+            .then(async (res) => {
+                if (cancelled) return;
+                if (res.ok) {
+                    const data = await res.json().catch(() => null);
+                    setSignedUrl(
+                        data && typeof data.url === "string" ? data.url : null,
+                    );
+                } else {
+                    setSignedUrl(null);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setSignedUrl(null);
+            })
+            .finally(() => {
+                if (!cancelled) setSigningResolved(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [url]);
 
     useEffect(() => {
         if (!watermark) return;
@@ -116,13 +165,21 @@ const BunnyEmbed = ({
     }, [watermark, tampered]);
 
     const cornerStyle = WATERMARK_CORNERS[cornerIndex];
+    const iframeSrc = signedUrl ?? (signingResolved ? url : "");
 
     return (
         <div ref={wrapperRef} className="aspect-video relative">
+            {!signingResolved && (
+                <div
+                    data-testid="bunny-loading"
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-lg bg-black/20 animate-pulse"
+                />
+            )}
             <iframe
                 ref={iframeRef}
                 className="w-full h-full rounded-lg absolute inset-0"
-                src={url}
+                src={iframeSrc}
                 title="Video player"
                 loading="lazy"
                 allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
