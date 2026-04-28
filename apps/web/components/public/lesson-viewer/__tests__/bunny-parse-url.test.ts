@@ -1,7 +1,7 @@
 // TOKEN-05: parse Bunny embed URL helper
 
 const BUNNY_EMBED_PATH_REGEX =
-    /^https?:\/\/(?:iframe|player)\.mediadelivery\.net\/embed\/(\d+)\/([A-Za-z0-9-]+)/;
+    /^https?:\/\/(?:iframe|player)\.mediadelivery\.net\/(?:embed|play)\/(\d+)\/([A-Za-z0-9-]+)/;
 
 function parseBunnyEmbedUrl(
     url: string,
@@ -34,6 +34,23 @@ describe("TOKEN-05: parseBunnyEmbedUrl", () => {
                 "https://iframe.mediadelivery.net/embed/123/abc?autoplay=1",
             ),
         ).toEqual({ libraryId: "123", videoId: "abc" });
+    });
+
+    test("accepts /play/ form (Bunny dashboard alt URL) and returns same shape", () => {
+        // Regression guard: lessons whose content was copied from the Bunny
+        // dashboard's "Direct Play URL" use /play/<lib>/<video> instead of
+        // /embed/<lib>/<video>. Without this branch, parseBunnyEmbedUrl
+        // returns null, the client never calls /api/bunny/sign, and the
+        // unsigned iframe is rejected by Bunny with 403 when Token
+        // Authentication is enabled on the library.
+        expect(
+            parseBunnyEmbedUrl(
+                "https://player.mediadelivery.net/play/629703/b28058e2-631a-49ef-afd0-ea19e953ef2f",
+            ),
+        ).toEqual({
+            libraryId: "629703",
+            videoId: "b28058e2-631a-49ef-afd0-ea19e953ef2f",
+        });
     });
 
     test("returns null for non-Bunny URLs", () => {

@@ -14,8 +14,11 @@ const WATERMARK_CORNERS: Array<React.CSSProperties> = [
 ];
 const WATERMARK_ROTATION_MS = 12000;
 
+// Accept both `/embed/` (canonical) and `/play/` (alt form sometimes copied
+// from the Bunny dashboard). signBunnyEmbedUrl always emits `/embed/`, so
+// downstream the iframe still loads the canonical URL with token+expires.
 const BUNNY_EMBED_PATH_REGEX =
-    /^https?:\/\/(?:iframe|player)\.mediadelivery\.net\/embed\/(\d+)\/([A-Za-z0-9-]+)/;
+    /^https?:\/\/(?:iframe|player)\.mediadelivery\.net\/(?:embed|play)\/(\d+)\/([A-Za-z0-9-]+)/;
 
 export function parseBunnyEmbedUrl(
     url: string,
