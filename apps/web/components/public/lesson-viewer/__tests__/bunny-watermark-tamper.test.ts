@@ -25,7 +25,7 @@ function stopBunnyPlayer(iframe: HTMLIFrameElement | null): void {
         /* ignore cross-origin errors */
     }
     try {
-        iframe.src = "";
+        iframe.src = "about:blank";
     } catch {
         /* ignore */
     }
@@ -107,7 +107,7 @@ describe("WM-04: watermark tamper detection", () => {
             listener: undefined,
         });
         expect(posted[0].target).toBe("*");
-        expect(iframe.getAttribute("src")).toBe("");
+        expect(iframe.getAttribute("src")).toBe("about:blank");
 
         document.body.removeChild(iframe);
     });

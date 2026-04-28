@@ -70,7 +70,7 @@ export function stopBunnyPlayer(iframe: HTMLIFrameElement | null): void {
         /* ignore cross-origin errors */
     }
     try {
-        iframe.src = "";
+        iframe.src = "about:blank";
     } catch {
         /* ignore */
     }
