@@ -1,9 +1,7 @@
 const MANAGE_ANY_COURSE_PERMISSION = "course:manage_any";
 
-type PurchaseLike = { courseId: string };
 type UserLike = {
     permissions?: string[];
-    purchases?: PurchaseLike[];
 };
 type LessonLike = {
     courseId: string;
@@ -13,6 +11,7 @@ type LessonLike = {
 export function canUserAccessVideoLesson(
     user: UserLike | null | undefined,
     lesson: LessonLike,
+    hasActiveMembership: boolean,
 ): boolean {
     if (!user) return false;
 
@@ -21,6 +20,14 @@ export function canUserAccessVideoLesson(
 
     if (lesson.requiresEnrollment === false) return true;
 
-    const purchases = user.purchases ?? [];
-    return purchases.some((p) => p.courseId === lesson.courseId);
+    return hasActiveMembership;
+}
+
+export function lessonReferencesVideo(
+    lessonContentValue: string | undefined | null,
+    libraryId: string,
+    videoId: string,
+): boolean {
+    if (!lessonContentValue) return false;
+    return lessonContentValue.includes(`${libraryId}/${videoId}`);
 }

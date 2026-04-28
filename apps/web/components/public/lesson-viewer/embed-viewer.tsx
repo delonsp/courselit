@@ -102,9 +102,11 @@ export function requestWrapperFullscreen(wrapper: HTMLElement | null): boolean {
 const BunnyEmbed = ({
     url,
     watermark,
+    lessonId,
 }: {
     url: string;
     watermark?: BunnyWatermark;
+    lessonId?: string;
 }) => {
     const [cornerIndex, setCornerIndex] = useState(0);
     const [tampered, setTampered] = useState(false);
@@ -116,7 +118,7 @@ const BunnyEmbed = ({
 
     useEffect(() => {
         const parsed = parseBunnyEmbedUrl(url);
-        if (!parsed) {
+        if (!parsed || !lessonId) {
             setSignedUrl(null);
             setSigningResolved(true);
             return;
@@ -125,8 +127,9 @@ const BunnyEmbed = ({
         setSigningResolved(false);
         fetch("/api/bunny/sign", {
             method: "POST",
+            credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(parsed),
+            body: JSON.stringify({ ...parsed, lessonId }),
         })
             .then(async (res) => {
                 if (cancelled) return;
@@ -215,8 +218,9 @@ const BunnyEmbed = ({
             try {
                 const res = await fetch("/api/bunny/sign", {
                     method: "POST",
+                    credentials: "same-origin",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(parsed),
+                    body: JSON.stringify({ ...parsed, lessonId }),
                 });
                 if (cancelled || !res.ok) return;
                 const data = await res.json().catch(() => null);
@@ -256,7 +260,7 @@ const BunnyEmbed = ({
             window.removeEventListener("message", onMessage);
             iframe?.removeEventListener("load", subscribe);
         };
-    }, [signedUrl, url]);
+    }, [signedUrl, url, lessonId]);
 
     useEffect(() => {
         if (!watermark) return;
@@ -389,16 +393,25 @@ const BunnyEmbed = ({
 interface LessonEmbedViewerProps {
     content: { value: string };
     watermark?: BunnyWatermark;
+    lessonId?: string;
 }
 
-const LessonEmbedViewer = ({ content, watermark }: LessonEmbedViewerProps) => {
+const LessonEmbedViewer = ({
+    content,
+    watermark,
+    lessonId,
+}: LessonEmbedViewerProps) => {
     const isBunny = content.value.match(UIConstants.BUNNY_EMBED_REGEX);
 
     return (
         <div className="flex flex-col min-h-screen">
             {isBunny && (
                 <div className="mb-4">
-                    <BunnyEmbed url={content.value} watermark={watermark} />
+                    <BunnyEmbed
+                        url={content.value}
+                        watermark={watermark}
+                        lessonId={lessonId}
+                    />
                 </div>
             )}
             {!isBunny && (

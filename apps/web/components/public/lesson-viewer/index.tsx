@@ -343,6 +343,7 @@ export const LessonViewer = ({
                             lesson.content && (
                                 <LessonEmbedViewer
                                     content={lesson.content}
+                                    lessonId={lesson.lessonId}
                                     watermark={
                                         /mediadelivery\.net|b-cdn\.net/.test(
                                             (

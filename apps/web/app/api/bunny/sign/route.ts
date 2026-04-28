@@ -3,15 +3,15 @@ import { auth } from "@/auth";
 import User from "@models/User";
 import DomainModel, { Domain } from "@models/Domain";
 import LessonModel from "@models/Lesson";
+import Membership from "@models/Membership";
 import { getLibraryKey, signBunnyEmbedUrl } from "@/lib/bunny/sign-url";
-import { canUserAccessVideoLesson } from "@/lib/bunny/authorize-video";
+import {
+    canUserAccessVideoLesson,
+    lessonReferencesVideo,
+} from "@/lib/bunny/authorize-video";
 import { logBunnySignEvent } from "@/lib/bunny/log-sign-event";
 
 const DEFAULT_TTL_SECONDS = 7200;
-
-function escapeRegExp(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 function getTtl(): number {
     const raw = process.env.BUNNY_TOKEN_TTL_SECONDS;
@@ -49,9 +49,10 @@ export async function POST(req: NextRequest) {
         return Response.json({ message: "Invalid JSON" }, { status: 400 });
     }
 
-    const { videoId, libraryId } = (body ?? {}) as {
+    const { videoId, libraryId, lessonId } = (body ?? {}) as {
         videoId?: unknown;
         libraryId?: unknown;
+        lessonId?: unknown;
     };
     if (typeof videoId !== "string" || !videoId) {
         return Response.json(
@@ -65,23 +66,38 @@ export async function POST(req: NextRequest) {
             { status: 400 },
         );
     }
-
-    const lesson = await LessonModel.findOne({
-        domain: domain._id,
-        type: "embed",
-        "content.value": {
-            $regex: `${escapeRegExp(libraryId)}/${escapeRegExp(videoId)}`,
-        },
-    });
-
-    if (!lesson) {
+    if (typeof lessonId !== "string" || !lessonId) {
         return Response.json(
-            { message: "Lesson not found for video" },
-            { status: 404 },
+            { message: "lessonId is required" },
+            { status: 400 },
         );
     }
 
-    if (!canUserAccessVideoLesson(user, lesson)) {
+    const lesson = await LessonModel.findOne({
+        domain: domain._id,
+        lessonId,
+        type: "embed",
+    });
+
+    if (!lesson) {
+        return Response.json({ message: "Lesson not found" }, { status: 404 });
+    }
+
+    const contentValue = (lesson.content as { value?: string } | undefined)
+        ?.value;
+    if (!lessonReferencesVideo(contentValue, libraryId, videoId)) {
+        return Response.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    const membership = await Membership.findOne({
+        domain: domain._id,
+        userId: user.userId,
+        entityId: lesson.courseId,
+        entityType: "course",
+        status: "active",
+    });
+
+    if (!canUserAccessVideoLesson(user, lesson, !!membership)) {
         return Response.json({ message: "Forbidden" }, { status: 403 });
     }
 
