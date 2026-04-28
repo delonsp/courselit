@@ -1,7 +1,7 @@
 import {
     isEmbedUrlAllowed,
-    EMBED_ALLOWED_DOMAINS,
-} from "@courselit/common-models/src/ui-constants";
+    EMBED_ALLOWLIST,
+} from "@ui-lib/embed-url-validator";
 
 describe("Embed URL allowlist validation", () => {
     it("accepts Bunny.net iframe URLs", () => {
@@ -42,10 +42,10 @@ describe("Embed URL allowlist validation", () => {
     });
 
     it("has the expected allowed domains", () => {
-        expect(EMBED_ALLOWED_DOMAINS).toContain("mediadelivery.net");
-        expect(EMBED_ALLOWED_DOMAINS).toContain("youtube.com");
-        expect(EMBED_ALLOWED_DOMAINS).toContain("youtu.be");
-        expect(EMBED_ALLOWED_DOMAINS).toContain("vimeo.com");
-        expect(EMBED_ALLOWED_DOMAINS).toContain("player.vimeo.com");
+        expect(EMBED_ALLOWLIST).toContain("mediadelivery.net");
+        expect(EMBED_ALLOWLIST).toContain("youtube.com");
+        expect(EMBED_ALLOWLIST).toContain("youtu.be");
+        expect(EMBED_ALLOWLIST).toContain("vimeo.com");
+        expect(EMBED_ALLOWLIST).toContain("player.vimeo.com");
     });
 });

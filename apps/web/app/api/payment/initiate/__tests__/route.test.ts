@@ -13,6 +13,7 @@ import Course from "@models/Course";
 import PaymentPlan from "@models/PaymentPlan";
 import Invoice from "@models/Invoice";
 import Community from "@models/Community";
+import { responses } from "@/config/strings";
 
 jest.mock("@models/Domain");
 jest.mock("@models/User");
@@ -257,7 +258,7 @@ describe("Payment Initiate Route", () => {
             expect(response.status).toBe(400);
 
             const responseData = await response.json();
-            expect(responseData.error).toBe("Joining reason required");
+            expect(responseData.error).toBe(responses.joining_reason_missing);
         });
     });
 
@@ -474,7 +475,7 @@ describe("Payment Initiate Route", () => {
             expect(response.status).toBe(500);
 
             const responseData = await response.json();
-            expect(responseData.error).toBe("Payment configuration is invalid");
+            expect(responseData.error).toBe(responses.payment_invalid_settings);
         });
 
         it("allows free plans without payment method configuration", async () => {
