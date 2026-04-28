@@ -1,8 +1,0 @@
-
-## Iteration N - TOKEN-05-FIX-DOMAIN
-- status: success
-- files_changed: [courselit/apps/web/components/public/lesson-viewer/embed-viewer.tsx, docs/PRD-bunny-protection.md]
-- error_encountered: none
-- fix_applied: Added console.warn for 401/403 responses on /api/bunny/sign so fallback to unsigned URL is observable. credentials:'same-origin' and Content-Type:'application/json' were already in place from earlier iterations.
-- learning: Always check current state of file before assuming work is needed — much of TOKEN-05-FIX-DOMAIN was already implemented; only the warning log was missing.
----
