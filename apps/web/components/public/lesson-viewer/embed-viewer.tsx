@@ -59,7 +59,9 @@ export function requestWrapperFullscreen(wrapper: HTMLElement | null): boolean {
         el.msRequestFullscreen;
     if (typeof fn !== "function") return false;
     try {
-        fn.call(el);
+        Promise.resolve(fn.call(el)).catch(() => {
+            /* user cancelled or browser blocked */
+        });
         return true;
     } catch {
         return false;

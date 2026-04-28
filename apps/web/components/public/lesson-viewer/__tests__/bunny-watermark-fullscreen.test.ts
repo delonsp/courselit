@@ -14,7 +14,9 @@ function requestWrapperFullscreen(wrapper: HTMLElement | null): boolean {
         el.msRequestFullscreen;
     if (typeof fn !== "function") return false;
     try {
-        fn.call(el);
+        Promise.resolve(fn.call(el)).catch(() => {
+            /* user cancelled or browser blocked */
+        });
         return true;
     } catch {
         return false;
@@ -54,5 +56,18 @@ describe("WM-05: requestWrapperFullscreen", () => {
             },
         } as unknown as HTMLElement;
         expect(requestWrapperFullscreen(fake)).toBe(false);
+    });
+
+    test("swallows rejected promise (e.g. ESC during fullscreen)", async () => {
+        const unhandled = jest.fn();
+        process.on("unhandledRejection", unhandled);
+        const fake = {
+            requestFullscreen: () =>
+                Promise.reject(new Error("user cancelled")),
+        } as unknown as HTMLElement;
+        expect(requestWrapperFullscreen(fake)).toBe(true);
+        await new Promise((r) => setTimeout(r, 10));
+        process.off("unhandledRejection", unhandled);
+        expect(unhandled).not.toHaveBeenCalled();
     });
 });
