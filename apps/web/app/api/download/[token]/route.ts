@@ -15,6 +15,7 @@ import {
     createWriteStream,
     existsSync,
     mkdirSync,
+    rmSync,
     unlinkSync,
 } from "fs";
 import { recordActivity } from "@/lib/record-activity";
@@ -28,7 +29,7 @@ export async function GET(
         name: req.headers.get("domain"),
     });
     if (!domain) {
-        return { error: { message: "Domain not found", status: 404 } };
+        return Response.json({ message: "Domain not found" }, { status: 404 });
     }
 
     const token = (await params).token;
@@ -110,8 +111,17 @@ export async function GET(
             archiveName: course.title,
         });
 
+        // Persistir progresso ANTES de enviar a Response — evita
+        // unhandled rejection caso save() falhe após response sent.
+        await recordProgress({
+            courseId: downloadLink.courseId,
+            userId: downloadLink.userId,
+        });
+        downloadLink.consumed = true;
+        await (downloadLink as any).save();
+
         const zipStream = createReadStream(zipFileAddress);
-        const headers = new Headers({
+        const responseHeaders = new Headers({
             "Content-Type": "application/zip",
             "Content-Disposition": `attachment; filename=${course.title}.zip`,
         });
@@ -119,22 +129,25 @@ export async function GET(
         const webStream = new ReadableStream({
             start(controller) {
                 zipStream.on("data", (chunk) => controller.enqueue(chunk));
-                zipStream.on("end", () => controller.close());
+                zipStream.on("end", () => {
+                    controller.close();
+                    try {
+                        rmSync(targetDirectory, {
+                            recursive: true,
+                            force: true,
+                        });
+                    } catch (err: any) {
+                        console.error(
+                            "[download] cleanup failed:",
+                            err?.message,
+                        );
+                    }
+                });
                 zipStream.on("error", (err) => controller.error(err));
             },
         });
 
-        zipStream.on("end", async () => {
-            await recordProgress({
-                courseId: downloadLink.courseId,
-                userId: downloadLink.userId,
-            });
-            downloadLink.consumed = true;
-            await (downloadLink as any).save();
-            unlinkSync(targetDirectory);
-        });
-
-        return new Response(webStream, { headers });
+        return new Response(webStream, { headers: responseHeaders });
     } catch (err: any) {
         error(err.message, {
             fileName: __filename,

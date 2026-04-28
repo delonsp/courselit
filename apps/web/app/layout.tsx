@@ -13,7 +13,15 @@ import { SITE_SETTINGS_DEFAULT_TITLE } from "@ui-config/strings";
 
 export async function generateMetadata(): Promise<Metadata> {
     const address = await getAddressFromHeaders(headers);
-    const siteInfo = await getSiteInfo(address);
+    let siteInfo: Awaited<ReturnType<typeof getSiteInfo>> = null as any;
+    try {
+        siteInfo = await getSiteInfo(address);
+    } catch (err: any) {
+        console.error(
+            "[layout] generateMetadata: getSiteInfo failed, using defaults:",
+            err?.message,
+        );
+    }
 
     return {
         title: `${siteInfo?.title || SITE_SETTINGS_DEFAULT_TITLE}`,
@@ -49,7 +57,15 @@ interface RootLayoutProps {
 
 export default async function RootLayout({ children }: RootLayoutProps) {
     const address = await getAddressFromHeaders(headers);
-    const siteSetup = await getFullSiteSetup(address);
+    let siteSetup: Awaited<ReturnType<typeof getFullSiteSetup>> = null as any;
+    try {
+        siteSetup = await getFullSiteSetup(address);
+    } catch (err: any) {
+        console.error(
+            "[layout] RootLayout: getFullSiteSetup failed, rendering without theme:",
+            err?.message,
+        );
+    }
     const themeStyles = siteSetup?.theme
         ? generateThemeStyles(siteSetup.theme)
         : "";

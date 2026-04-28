@@ -1,7 +1,7 @@
 import type { Instrumentation } from "next";
 
-const EXCEPTION_WINDOW_MS = 30_000;
-const EXCEPTION_THRESHOLD = 20;
+const EXCEPTION_WINDOW_MS = 60_000;
+const EXCEPTION_THRESHOLD = 5;
 
 let recentExceptionCount = 0;
 let windowStartedAt = 0;

@@ -23,11 +23,18 @@ class Fetch {
     ) {}
 
     async exec(options?: ExecOptions) {
+        // Default 15s timeout quando o caller nao passa signal — protege contra
+        // upstreams que penduram a request indefinidamente (ex: Traefik com
+        // rota perdida, Mongo lento). AbortSignal.timeout esta disponivel em
+        // Node >=18 e em browsers modernos.
+        const signal =
+            this.signal ?? (AbortSignal as any).timeout?.(15_000) ?? undefined;
+
         const fetchOptions: any = {
             method: this.httpMethod,
             credentials: "same-origin",
             headers: {},
-            signal: this.signal,
+            signal,
         };
 
         if (this.isGraphQLEndpoint) {
