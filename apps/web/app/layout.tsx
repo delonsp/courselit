@@ -6,13 +6,13 @@ import "../styles/globals.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getSiteInfo, getFullSiteSetup } from "@ui-lib/utils";
-import { getAddressFromHeaders } from "@/app/actions";
+import { getInternalAddress } from "@/app/actions";
 import * as fonts from "@/lib/fonts";
 import { generateThemeStyles } from "@/lib/theme-styles";
 import { SITE_SETTINGS_DEFAULT_TITLE } from "@ui-config/strings";
 
 export async function generateMetadata(): Promise<Metadata> {
-    const address = await getAddressFromHeaders(headers);
+    const address = await getInternalAddress(headers);
     let siteInfo: Awaited<ReturnType<typeof getSiteInfo>> = null as any;
     try {
         siteInfo = await getSiteInfo(address);
@@ -56,7 +56,7 @@ interface RootLayoutProps {
 }
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-    const address = await getAddressFromHeaders(headers);
+    const address = await getInternalAddress(headers);
     let siteSetup: Awaited<ReturnType<typeof getFullSiteSetup>> = null as any;
     try {
         siteSetup = await getFullSiteSetup(address);

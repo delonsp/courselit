@@ -13,13 +13,15 @@ export default auth(async (request: NextRequest) => {
         return Response.json({ success: true });
     }
 
+    // Bypass do Traefik para o self-fetch de verify-domain. INTERNAL_BACKEND_URL
+    // (ex: http://127.0.0.1:3000) é server-only e nao vaza para o cliente —
+    // diferente de `backend`, que pode acabar em request headers consumidas
+    // por client components. Sem isso, qualquer hiccup do reverse proxy trava
+    // todo request que passa pelo middleware.
+    const internalBase = process.env.INTERNAL_BACKEND_URL ?? backend;
+
     try {
-        // Timeout de 2s evita pendurar requests quando o backend interno
-        // (ou Traefik, no fallback sem INTERNAL_BACKEND_URL) esta lento.
-        // Combinado com o bypass de getBackendAddress (vai direto a
-        // 127.0.0.1 quando INTERNAL_BACKEND_URL esta setado), isso elimina
-        // a dependencia circular do reverse proxy.
-        const response = await fetch(`${backend}/verify-domain`, {
+        const response = await fetch(`${internalBase}/verify-domain`, {
             signal: AbortSignal.timeout(2000),
         });
 
