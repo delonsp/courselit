@@ -640,11 +640,33 @@ export async function syncMembersWithPlanChanges({
                 isIncludedInPlan: true,
             });
 
-            // Remove from user.purchases
-            await UserModel.updateOne(
-                { domain, userId },
-                { $pull: { purchases: { courseId: { $in: removedCourses } } } },
+            // Remove from user.purchases — but only courses that no other
+            // active membership still grants (e.g. a standalone one-time
+            // purchase or another plan that includes the same course)
+            const stillGrantedCourseIds: string[] = await (
+                MembershipModel as any
+            ).distinct("entityId", {
+                domain,
+                userId,
+                entityType: Constants.MembershipEntityType.COURSE,
+                entityId: { $in: removedCourses },
+                status: Constants.MembershipStatus.ACTIVE,
+            });
+
+            const courseIdsToPull = removedCourses.filter(
+                (id: string) => !stillGrantedCourseIds.includes(id),
             );
+
+            if (courseIdsToPull.length > 0) {
+                await UserModel.updateOne(
+                    { domain, userId },
+                    {
+                        $pull: {
+                            purchases: { courseId: { $in: courseIdsToPull } },
+                        },
+                    },
+                );
+            }
         }
     }
 }
