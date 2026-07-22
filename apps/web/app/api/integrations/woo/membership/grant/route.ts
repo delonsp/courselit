@@ -4,6 +4,7 @@ import UserModel from "@models/User";
 import MembershipModel from "@models/Membership";
 import PaymentPlanModel from "@models/PaymentPlan";
 import CommunityModel from "@models/Community";
+import CourseModel from "@models/Course";
 import {
     Constants,
     Membership,
@@ -17,7 +18,8 @@ import constants from "@/config/constants";
 
 interface WooGrantRequest {
     email: string;
-    communityId: string;
+    communityId?: string;
+    courseId?: string;
     planId: string;
     wooSubscriptionId?: string;
     name?: string;
@@ -99,38 +101,75 @@ export async function POST(req: NextRequest) {
         }
 
         const body: WooGrantRequest = await req.json();
-        const { email, communityId, planId, wooSubscriptionId, name } = body;
+        const {
+            email,
+            communityId,
+            courseId,
+            planId,
+            wooSubscriptionId,
+            name,
+        } = body;
 
-        // Validate required fields
-        if (!email || !communityId || !planId) {
+        // Validate required fields: either communityId (subscription) or
+        // courseId (standalone course purchase), never both
+        if (!email || !planId || (!communityId && !courseId)) {
             return NextResponse.json(
                 {
-                    error: "Missing required fields: email, communityId, planId",
+                    error: "Missing required fields: email, planId, and communityId or courseId",
                 },
                 { status: 400 },
             );
         }
 
-        // Find the community
-        const community = await CommunityModel.findOne({
-            domain: domain._id,
-            communityId,
-            deleted: false,
-        });
-
-        if (!community) {
+        if (communityId && courseId) {
             return NextResponse.json(
-                { error: "Community not found" },
-                { status: 404 },
+                {
+                    error: "Provide either communityId or courseId, not both",
+                },
+                { status: 400 },
             );
+        }
+
+        const entityId = (communityId || courseId) as string;
+        const entityType = communityId
+            ? Constants.MembershipEntityType.COMMUNITY
+            : Constants.MembershipEntityType.COURSE;
+
+        if (communityId) {
+            // Find the community
+            const community = await CommunityModel.findOne({
+                domain: domain._id,
+                communityId,
+                deleted: false,
+            });
+
+            if (!community) {
+                return NextResponse.json(
+                    { error: "Community not found" },
+                    { status: 404 },
+                );
+            }
+        } else {
+            // Find the course
+            const course = await CourseModel.findOne({
+                domain: domain._id,
+                courseId,
+            });
+
+            if (!course) {
+                return NextResponse.json(
+                    { error: "Course not found" },
+                    { status: 404 },
+                );
+            }
         }
 
         // Find the payment plan
         const paymentPlan = await PaymentPlanModel.findOne<PaymentPlan>({
             domain: domain._id,
             planId,
-            entityId: communityId,
-            entityType: Constants.MembershipEntityType.COMMUNITY,
+            entityId,
+            entityType,
         });
 
         if (!paymentPlan) {
@@ -147,8 +186,8 @@ export async function POST(req: NextRequest) {
         let membership = await MembershipModel.findOne<Membership>({
             domain: domain._id,
             userId: user.userId,
-            entityId: communityId,
-            entityType: Constants.MembershipEntityType.COMMUNITY,
+            entityId,
+            entityType,
         });
 
         if (membership) {
@@ -161,7 +200,9 @@ export async function POST(req: NextRequest) {
             if (!wasActive) {
                 membership.status = Constants.MembershipStatus.PENDING; // Reset to pending for reactivation
             }
-            membership.role = Constants.MembershipRole.POST;
+            if (entityType === Constants.MembershipEntityType.COMMUNITY) {
+                membership.role = Constants.MembershipRole.POST;
+            }
             membership.paymentPlanId = planId;
             membership.subscriptionId = wooSubscriptionId;
             membership.subscriptionMethod = "woocommerce";
@@ -176,14 +217,16 @@ export async function POST(req: NextRequest) {
                 info(`WooCommerce integration: Reactivated membership`, {
                     domain: domain.name,
                     userId: user.userId,
-                    communityId,
+                    entityId,
+                    entityType,
                     membershipId: membership.membershipId,
                 });
             } else {
                 info(`WooCommerce integration: Membership already active`, {
                     domain: domain.name,
                     userId: user.userId,
-                    communityId,
+                    entityId,
+                    entityType,
                     membershipId: membership.membershipId,
                 });
             }
@@ -192,14 +235,19 @@ export async function POST(req: NextRequest) {
             membership = await MembershipModel.create({
                 domain: domain._id,
                 userId: user.userId,
-                entityId: communityId,
-                entityType: Constants.MembershipEntityType.COMMUNITY,
+                entityId,
+                entityType,
                 paymentPlanId: planId,
                 status: Constants.MembershipStatus.PENDING,
-                role: Constants.MembershipRole.COMMENT,
+                role:
+                    entityType === Constants.MembershipEntityType.COMMUNITY
+                        ? Constants.MembershipRole.COMMENT
+                        : undefined,
                 subscriptionId: wooSubscriptionId,
                 subscriptionMethod: "woocommerce",
-                joiningReason: "WooCommerce Subscription",
+                joiningReason: communityId
+                    ? "WooCommerce Subscription"
+                    : "WooCommerce Purchase",
             });
 
             // Activate membership
@@ -208,7 +256,8 @@ export async function POST(req: NextRequest) {
             info(`WooCommerce integration: Created and activated membership`, {
                 domain: domain.name,
                 userId: user.userId,
-                communityId,
+                entityId,
+                entityType,
                 membershipId: membership.membershipId,
             });
         }

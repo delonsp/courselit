@@ -9,7 +9,8 @@ import mongoose from "mongoose";
 
 interface WooRevokeRequest {
     email: string;
-    communityId: string;
+    communityId?: string;
+    courseId?: string;
     wooSubscriptionId?: string;
     reason?: string;
 }
@@ -54,15 +55,33 @@ export async function POST(req: NextRequest) {
         }
 
         const body: WooRevokeRequest = await req.json();
-        const { email, communityId, wooSubscriptionId, reason } = body;
+        const { email, communityId, courseId, wooSubscriptionId, reason } =
+            body;
 
-        // Validate required fields
-        if (!email || !communityId) {
+        // Validate required fields: either communityId (subscription) or
+        // courseId (standalone course purchase), never both
+        if (!email || (!communityId && !courseId)) {
             return NextResponse.json(
-                { error: "Missing required fields: email, communityId" },
+                {
+                    error: "Missing required fields: email, and communityId or courseId",
+                },
                 { status: 400 },
             );
         }
+
+        if (communityId && courseId) {
+            return NextResponse.json(
+                {
+                    error: "Provide either communityId or courseId, not both",
+                },
+                { status: 400 },
+            );
+        }
+
+        const entityId = (communityId || courseId) as string;
+        const entityType = communityId
+            ? Constants.MembershipEntityType.COMMUNITY
+            : Constants.MembershipEntityType.COURSE;
 
         // Find the user
         const user = await UserModel.findOne<User>({
@@ -81,8 +100,8 @@ export async function POST(req: NextRequest) {
         const membership = await MembershipModel.findOne<Membership>({
             domain: domain._id,
             userId: user.userId,
-            entityId: communityId,
-            entityType: Constants.MembershipEntityType.COMMUNITY,
+            entityId,
+            entityType,
         });
 
         if (!membership) {
@@ -117,8 +136,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Delete included products memberships (courses bundled with the plan)
-        if (membership.paymentPlanId) {
+        // Community: delete included products memberships (courses bundled with the plan)
+        if (
+            entityType === Constants.MembershipEntityType.COMMUNITY &&
+            membership.paymentPlanId
+        ) {
             await deleteMembershipsActivatedViaPaymentPlan({
                 domain: domain._id,
                 userId: membership.userId,
@@ -129,13 +151,40 @@ export async function POST(req: NextRequest) {
         // Update membership status to EXPIRED
         membership.status = Constants.MembershipStatus.EXPIRED;
         membership.rejectionReason =
-            reason || "WooCommerce subscription cancelled/expired";
+            reason ||
+            (communityId
+                ? "WooCommerce subscription cancelled/expired"
+                : "WooCommerce course access expired");
         await (membership as any).save();
+
+        // Course: remove from user.purchases (which gates lesson access), but
+        // only if no other active membership still grants this course (e.g.
+        // the course is also included in an active subscription plan)
+        if (entityType === Constants.MembershipEntityType.COURSE) {
+            const otherActiveMemberships = await (
+                MembershipModel as any
+            ).countDocuments({
+                domain: domain._id,
+                userId: user.userId,
+                entityId,
+                entityType: Constants.MembershipEntityType.COURSE,
+                status: Constants.MembershipStatus.ACTIVE,
+                membershipId: { $ne: membership.membershipId },
+            });
+
+            if (otherActiveMemberships === 0) {
+                await UserModel.updateOne(
+                    { domain: domain._id, userId: user.userId },
+                    { $pull: { purchases: { courseId: entityId } } },
+                );
+            }
+        }
 
         info(`WooCommerce integration: Revoked membership`, {
             domain: domain.name,
             userId: user.userId,
-            communityId,
+            entityId,
+            entityType,
             membershipId: membership.membershipId,
             reason: membership.rejectionReason,
         });

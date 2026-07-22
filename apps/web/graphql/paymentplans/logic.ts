@@ -512,12 +512,34 @@ export async function deleteMembershipsActivatedViaPaymentPlan({
         isIncludedInPlan: true,
     });
 
-    // Also remove from user.purchases to revoke access
+    // Also remove from user.purchases to revoke access — but only courses
+    // that no other active membership still grants (e.g. a standalone
+    // one-time purchase of the same course must survive plan cancellation)
     if (courseIdsToRemove.length > 0) {
-        await UserModel.updateOne(
-            { domain, userId },
-            { $pull: { purchases: { courseId: { $in: courseIdsToRemove } } } },
+        const stillGrantedCourseIds: string[] = await (
+            MembershipModel as any
+        ).distinct("entityId", {
+            domain,
+            userId,
+            entityType: Constants.MembershipEntityType.COURSE,
+            entityId: { $in: courseIdsToRemove },
+            status: Constants.MembershipStatus.ACTIVE,
+        });
+
+        const courseIdsToPull = courseIdsToRemove.filter(
+            (id: string) => !stillGrantedCourseIds.includes(id),
         );
+
+        if (courseIdsToPull.length > 0) {
+            await UserModel.updateOne(
+                { domain, userId },
+                {
+                    $pull: {
+                        purchases: { courseId: { $in: courseIdsToPull } },
+                    },
+                },
+            );
+        }
     }
 }
 
